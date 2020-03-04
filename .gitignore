@@ -338,3 +338,10 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/SpacePhysicsSimulator/My Advisor Results - SpacePhysicsSimulator/e001
+/SpacePhysicsSimulator/My Advisor Results - SpacePhysicsSimulator/e000
+/SpacePhysicsSimulator/My Advisor Results - SpacePhysicsSimulator
+*.xml
+/CodeGraphData/Result_solution/xml
+/CodeGraphData
+*.rar
