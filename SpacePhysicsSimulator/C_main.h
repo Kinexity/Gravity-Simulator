@@ -20,7 +20,7 @@ private:
 		string temp = getenv("USERNAME");
 		return wstring().assign(temp.begin(), temp.end());
 	}();
-	filesystem::path
+	const filesystem::path
 		main_path = L"C:/Users/" + username + L"/Documents/SpacePhysicsSimulator";
 	unique_ptr<C_Base>
 		running;

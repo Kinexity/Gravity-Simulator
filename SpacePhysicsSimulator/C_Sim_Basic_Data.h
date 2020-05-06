@@ -7,7 +7,7 @@
 using namespace std;
 
 struct S_Sim_Basic_Data {
-	uint_fast64_t
+	size_t
 		num_of_objects = 0, //DO NOT CHANGE ORDER - 1
 		sim_duration = 0, //DO NOT CHANGE ORDER - 2
 		power2_cycles_per_second = 0; //DO NOT CHANGE ORDER - 3

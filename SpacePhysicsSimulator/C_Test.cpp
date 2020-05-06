@@ -1,10 +1,19 @@
 #include "C_Test.h"
 #include <complex>
 #include <valarray>
+#include <type_traits>
+#include "PureCPPLib/C_Time_Counter.h"
+#include "PureCPPLib/polynomial.h"
+#include <boost/multiprecision/cpp_bin_float.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 #include "matplotlibcpp.h"
 using namespace std;
 namespace pt = matplotlibcpp;
 
+struct StripData {
+	int npads;  // length in npads
+	double length() { return npads * 5.0; }
+};
 
 template <size_t element_index, typename... Types>
 std::ostream& tuple_write(std::ostream& output_stream, std::tuple<Types...>& data_tuple) {
@@ -168,36 +177,36 @@ void intrinsics_test() {
 	for (uint_fast64_t index = 0; index < size; index++) {
 		array[index] = rnd();
 	}
-	tc().start();
+	tc.start();
 	sum = accumulate(&array[0], &array[size], int_fast64_t());
-	tc().stop();
+	tc.stop();
 	std::cout << line << endl;
 	std::cout << "suma = " << sum << endl;
-	std::cout << "accumulate: " << size / tc().measured_timespan().count() << " elem./s" << endl;
-	tc().start();
+	std::cout << "accumulate: " << size / tc.measured_timespan().count() << " elem./s" << endl;
+	tc.start();
 	sum = reduce(execution::par, &array[0], &array[size], int_fast64_t());
-	tc().stop();
+	tc.stop();
 	std::cout << line << endl;
 	std::cout << "suma = " << sum << endl;
-	std::cout << "reduce: " << size / tc().measured_timespan().count() << " elem./s" << endl;
+	std::cout << "reduce: " << size / tc.measured_timespan().count() << " elem./s" << endl;
 	ptr_avx2 = reinterpret_cast<__m256i*>(array.get());
-	tc().start();
+	tc.start();
 	sum_avx2 = __m256i{0, 0, 0, 0};
 	for (uint_fast64_t mult_index = 0; mult_index < (size / 4); mult_index++) {
 		sum_avx2 = _mm256_add_epi64(sum_avx2, ptr_avx2[mult_index]);
 	}
 	sum = (reinterpret_cast<int_fast64_t*>(&sum_avx2))[0] + (reinterpret_cast<int_fast64_t*>(&sum_avx2))[1] + (reinterpret_cast<int_fast64_t*>(&sum_avx2))[2] + (reinterpret_cast<int_fast64_t*>(&sum_avx2))[3];
-	tc().stop();
+	tc.stop();
 	std::cout << line << endl;
 	std::cout << "suma = " << sum << endl;
-	std::cout << "_mm256_add_epi64: " << size / tc().measured_timespan().count() << " elem./s" << endl;
-	tc().start();
+	std::cout << "_mm256_add_epi64: " << size / tc.measured_timespan().count() << " elem./s" << endl;
+	tc.start();
 	sum_avx2 = reduce(execution::par, (__m256i*) & array[0], (__m256i*) & array[size], _mm256_set1_epi64x(0), [&](__m256i v1, __m256i v2) { return _mm256_add_epi64(v1, v2); });
 	sum = (reinterpret_cast<int_fast64_t*>(&sum_avx2))[0] + (reinterpret_cast<int_fast64_t*>(&sum_avx2))[1] + (reinterpret_cast<int_fast64_t*>(&sum_avx2))[2] + (reinterpret_cast<int_fast64_t*>(&sum_avx2))[3];
-	tc().stop();
+	tc.stop();
 	std::cout << line << endl;
 	std::cout << "suma = " << sum << endl;
-	std::cout << "reduce: " << size / tc().measured_timespan().count() << " elem./s" << endl;
+	std::cout << "reduce: " << size / tc.measured_timespan().count() << " elem./s" << endl;
 }
 
 void hypot_test() {
@@ -210,31 +219,31 @@ void hypot_test() {
 	for (uint_fast64_t x = 0; x < size + 9; x++) {
 		vec.push_back(static_cast<double>(rnd()));
 	}
-	tc().start();
+	tc.start();
 	for (uint_fast64_t x = 0; x < size - 5; x++) {
 		number = hypot(vec[x] - vec[x + 1], vec[x + 2] - vec[x + 3], vec[x + 4] - vec[x + 5]);
 	}
-	tc().stop();
-	std::cout << "Przepustowosc (hypot): " << size / tc().measured_timespan().count() << " elem./s" << endl;
-	tc().start();
+	tc.stop();
+	std::cout << "Przepustowosc (hypot): " << size / tc.measured_timespan().count() << " elem./s" << endl;
+	tc.start();
 	for (uint_fast64_t x = 0; x < size - 5; x++) {
 		number = hypot(vec[x] - vec[x + 1], hypot(vec[x + 2] - vec[x + 3], vec[x + 4] - vec[x + 5]));
 	}
-	tc().stop();
-	std::cout << "Przepustowosc (hypot(hypot)): " << size / tc().measured_timespan().count() << " elem./s" << endl;
-	tc().start();
+	tc.stop();
+	std::cout << "Przepustowosc (hypot(hypot)): " << size / tc.measured_timespan().count() << " elem./s" << endl;
+	tc.start();
 	for (uint_fast64_t x = 0; x < size - 5; x++) {
 		number = sqrt((vec[x] - vec[x + 1]) * (vec[x] - vec[x + 1]) + (vec[x + 2] - vec[x + 3]) * (vec[x + 2] - vec[x + 3]) + (vec[x + 4] - vec[x + 5]) * (vec[x + 4] - vec[x + 5]));
 	}
-	tc().stop();
-	std::cout << "Przepustowosc (sqrt): " << size / tc().measured_timespan().count() << " elem./s" << endl;
-	tc().start();
+	tc.stop();
+	std::cout << "Przepustowosc (sqrt): " << size / tc.measured_timespan().count() << " elem./s" << endl;
+	tc.start();
 	for (uint_fast64_t x = 0; x < size - 5; x++) {
 		number = sqrt(fma((vec[x] - vec[x + 1]), (vec[x] - vec[x + 1]), fma((vec[x + 2] - vec[x + 3]), (vec[x + 2] - vec[x + 3]), (vec[x + 4] - vec[x + 5]) * (vec[x + 4] - vec[x + 5]))));
 	}
-	tc().stop();
-	std::cout << "Przepustowosc (sqrt(fma)): " << size / tc().measured_timespan().count() << " elem./s" << endl;
-	tc().start();
+	tc.stop();
+	std::cout << "Przepustowosc (sqrt(fma)): " << size / tc.measured_timespan().count() << " elem./s" << endl;
+	tc.start();
 	__m256d
 		set_1,
 		set_2,
@@ -246,9 +255,9 @@ void hypot_test() {
 		set_op = _mm256_mul_pd(set_op, set_op);
 		number = sqrt(_mm_cvtsd_f64(_mm_add_sd(_mm_add_pd(_mm256_castpd256_pd128(set_op), _mm256_extractf128_pd(set_op, 1)), _mm_unpackhi_pd(_mm_add_pd(_mm256_castpd256_pd128(set_op), _mm256_extractf128_pd(set_op, 1)), _mm_add_pd(_mm256_castpd256_pd128(set_op), _mm256_extractf128_pd(set_op, 1))))));
 	}
-	tc().stop();
-	std::cout << "Przepustowosc (sqrt(intrin)): " << size / tc().measured_timespan().count() << " elem./s" << endl;
-	tc().start();
+	tc.stop();
+	std::cout << "Przepustowosc (sqrt(intrin)): " << size / tc.measured_timespan().count() << " elem./s" << endl;
+	tc.start();
 	__m256d
 		set[6],
 		hypot_set;
@@ -260,8 +269,8 @@ void hypot_test() {
 		}
 		hypot_set = _mm256_hypot_pd(_mm256_hypot_pd(set[0], set[2]), set[4]);
 	}
-	tc().stop();
-	std::cout << "Przepustowosc (hypot(intrin)): " << size / tc().measured_timespan().count() << " elem./s" << endl;
+	tc.stop();
+	std::cout << "Przepustowosc (hypot(intrin)): " << size / tc.measured_timespan().count() << " elem./s" << endl;
 }
 
 void bitset_test() {
@@ -386,24 +395,24 @@ void speedtest() {
 		num_of_cycles = 1000000000;
 	unique_ptr<uint_fast64_t[]>
 		unique_ptr_array = make_unique<uint_fast64_t[]>(arr_size);
-	tc().start();
+	tc.start();
 	position = 0;
 	for (uint_fast64_t i = 0; i < num_of_cycles; i++) {
 		unique_ptr_array[position] += jump_size;
 		position += jump_size;
 		position %= arr_size;
 	}
-	tc().stop();
-	std::cout << "czas: " << tc().measured_timespan().count() << endl;
-	tc().start();
+	tc.stop();
+	std::cout << "czas: " << tc.measured_timespan().count() << endl;
+	tc.start();
 	position = 0;
 	for (uint_fast64_t i = 0; i < num_of_cycles; i++) {
 		new_array[position] += jump_size;
 		position += jump_size;
 		position %= arr_size;
 	}
-	tc().stop();
-	std::cout << "czas: " << tc().measured_timespan().count() << endl;
+	tc.stop();
+	std::cout << "czas: " << tc.measured_timespan().count() << endl;
 	delete[] new_array;
 }
 
@@ -509,20 +518,20 @@ void exponentiation_test() {
 		num_array[0][index] = rnd();
 	}
 	for (auto exponent = 2; exponent <= 20; exponent++) {
-		tc().start();
+		tc.start();
 		for (auto index = 0; index < array_size; index++) {
 			num_array[1][index] = pow(num_array[0][index], exponent);
 		}
-		tc().stop();
-		std::cout << "pow (" << exponent << "): " << array_size / tc().measured_timespan().count() << " ops/s" << endl;
+		tc.stop();
+		std::cout << "pow (" << exponent << "): " << array_size / tc.measured_timespan().count() << " ops/s" << endl;
 	}
 	for (auto exponent = 2; exponent <= 20; exponent++) {
-		tc().start();
+		tc.start();
 		for (auto index = 0; index < array_size; index++) {
 			num_array[1][index] = pow_sp(num_array[0][index], exponent);
 		}
-		tc().stop();
-		std::cout << "pow_sp (" << exponent << "): " << array_size / tc().measured_timespan().count() << " ops/s" << endl;
+		tc.stop();
+		std::cout << "pow_sp (" << exponent << "): " << array_size / tc.measured_timespan().count() << " ops/s" << endl;
 	}
 }
 
@@ -730,20 +739,20 @@ void sum_arrays(size_t exponent) {
 		vecs[1][i] = rnd();
 		vecs[2][i] = rnd();
 	}
-	tc().start();
+	tc.start();
 	std::transform(std::execution::par, vecs[0].begin(), vecs[0].end(), vecs[2].begin(), [&](double num) {return std::sqrt(num); });
-	tc().stop();
-	std::cout << "std::transform(std::sqrt): " << N / tc().measured_timespan().count() << "elems/s" << std::endl;
-	tc().start();
+	tc.stop();
+	std::cout << "std::transform(std::sqrt): " << N / tc.measured_timespan().count() << "elems/s" << std::endl;
+	tc.start();
 	for (size_t index = 0; index < N; index += 4) {
 		_mm256_store_pd(&vecs[2][index], _mm256_sqrt_pd(_mm256_load_pd(&vecs[0][index])));
 	}
-	tc().stop();
-	std::cout << "_mm256_sqrt_pd: " << N / tc().measured_timespan().count() << "elems/s" << std::endl;
-	tc().start();
+	tc.stop();
+	std::cout << "_mm256_sqrt_pd: " << N / tc.measured_timespan().count() << "elems/s" << std::endl;
+	tc.start();
 	std::transform(std::execution::par, (__m256d*) & *vecs[0].begin(), (__m256d*) & *vecs[0].end(), (__m256d*) & *vecs[2].begin(), [&](__m256d v1) { return _mm256_sqrt_pd(v1); });
-	tc().stop();
-	std::cout << "std::transform(_mm256_sqrt_pd): " << N / tc().measured_timespan().count() << "elems/s" << std::endl;
+	tc.stop();
+	std::cout << "std::transform(_mm256_sqrt_pd): " << N / tc.measured_timespan().count() << "elems/s" << std::endl;
 }
 
 void distance_test() {
@@ -771,7 +780,7 @@ void matplotlib_test() {
 	const int_fast64_t elems = 10000001;
 	const double step = 1e-2;
 	{
-		tc().start();
+		tc.start();
 		std::valarray<double> args, vals;
 		args.resize(elems);
 		vals.resize(elems);
@@ -780,10 +789,10 @@ void matplotlib_test() {
 			return std::exchange(it, it + step);
 		});
 		vals = std::log(std::sin(std::abs(args)));
-		tc().stop();
-		std::cout << "valarray: " << elems / tc().measured_timespan().count() << "elems/s" << std::endl;
+		tc.stop();
+		std::cout << "valarray: " << elems / tc.measured_timespan().count() << "elems/s" << std::endl;
 	}
-	tc().start();
+	tc.start();
 	std::vector<double> args, vals;
 	args.resize(elems);
 	vals.resize(elems);
@@ -792,10 +801,137 @@ void matplotlib_test() {
 		return std::exchange(it, it + step);
 	});
 	std::transform(args.begin(), args.end(), vals.begin(), [&](double arg) { return std::log(std::sin(std::abs(arg))); });
-	tc().stop();
-	std::cout << "vector: " << elems / tc().measured_timespan().count() << "elems/s" << std::endl;
+	tc.stop();
+	std::cout << "vector: " << elems / tc.measured_timespan().count() << "elems/s" << std::endl;
 	pt::plot(args, vals, "-");
 	pt::show();
+}
+
+template<typename T>
+T Lagrange_polynomial(const std::vector<double>& args, double arg, T x) {
+	return std::transform_reduce(std::execution::par, args.begin(), args.end(), static_cast<T>(1.0), std::multiplies<T>(), [&](double _a_) { return (_a_ != arg ? (x - _a_) / (arg - _a_) : static_cast<T>(1.0)); });
+}
+
+template<typename T>
+T interpolate(const std::vector<double>& args, const std::vector<double>& vals, T x) {
+	return std::transform_reduce(std::execution::par, args.begin(), args.end(), vals.begin(), T(), std::plus<T>(), [&](double arg, double val) { return Lagrange_polynomial(args, arg, x) * val;  });
+};
+
+using tp = float256;
+double arg_interp, draw_arg;
+
+
+void interpolation() {
+	polynomial<tp>
+		interpolated_polynomial;
+	const size_t
+		N_interp = 101,
+		N_draw = 10001;
+	const double
+		radius = 30.,
+		interp_radius = 30.;
+	std::vector<double>
+		args_interp,
+		vals_interp,
+		args_draw,
+		vals_draw,
+		vals_interp_draw,
+		vals_interp_poly_draw;
+	args_interp.resize(N_interp);
+	vals_interp.resize(N_interp);
+	args_draw.resize(N_draw);
+	vals_draw.resize(N_draw);
+	vals_interp_draw.resize(N_draw);
+	vals_interp_poly_draw.resize(N_draw);
+	arg_interp = -interp_radius;
+	draw_arg = -radius;
+	auto interp_arg_gen = [&]() {
+		static const auto step = 2 * interp_radius / (N_interp - 1);
+		return std::exchange(arg_interp, arg_interp + step);
+	};
+	auto draw_arg_gen = [&]() {
+		static const auto step = 2 * radius / (N_draw - 1);
+		return std::exchange(draw_arg, draw_arg + step);
+	};
+	auto fn = [&](auto x) {return std::asinh(x); };
+	const double eps = 1e-10;
+	auto deriv = [&](auto x) { return (fn(x + eps) - fn(x - eps)) / (2. * eps); };
+	std::generate(std::execution::par, args_interp.begin(), args_interp.end(), interp_arg_gen);
+	std::transform(std::execution::par, args_interp.begin(), args_interp.end(), vals_interp.begin(), fn);
+	double
+		hi = std::max(1.25 * *std::max_element(std::execution::par, vals_interp.begin(), vals_interp.end()), 1.),
+		lo = std::min(1.25 * *std::min_element(std::execution::par, vals_interp.begin(), vals_interp.end()), -1.);
+	interpolated_polynomial = interpolate(args_interp, vals_interp, polynomial<tp>({ (tp)0.,(tp)1. }));
+	std::cout << interpolated_polynomial << std::endl;
+	std::generate(std::execution::par, args_draw.begin(), args_draw.end(), draw_arg_gen);
+	std::transform(std::execution::par, args_draw.begin(), args_draw.end(), vals_draw.begin(), fn);
+	std::transform(std::execution::par, args_draw.begin(), args_draw.end(), vals_interp_draw.begin(), [&](auto x) { return std::clamp(interpolate(args_interp, vals_interp, x), lo, hi); });
+	std::transform(std::execution::par, args_draw.begin(), args_draw.end(), vals_interp_poly_draw.begin(), [&](auto x) { return (double)std::clamp(interpolated_polynomial(x), (tp)lo, (tp)hi); });
+	pt::plot(args_draw, vals_draw, "g-");
+	pt::plot(args_draw, vals_interp_draw, "r-");
+	pt::plot(args_draw, vals_interp_poly_draw, "b-");
+	pt::show();
+}
+
+void polynomial_test() {
+	polynomial<double>
+		poly1({ 1.,1.,1. }),
+		poly2({ 1.,1.,1. });
+	std::cout << "deg = " << (poly1 + poly2).degree() << "	" << poly1 + poly2 << std::endl;
+	std::cout << "deg = " << (poly1 - poly2).degree() << "	" << poly1 - poly2 << std::endl;
+	std::cout << "deg = " << (poly1 * poly2).degree() << "	" << poly1 * poly2 << std::endl;
+}
+
+bool is_pd(std::string num) {
+	std::string comp_digits = "123456789";
+	std::sort(std::execution::par_unseq, num.begin(), num.end());
+	return num == comp_digits;
+}
+
+void pandigital() {
+	tc.start();
+	std::vector<std::pair<std::string, std::string>> fib;
+	uint_fast64_t
+		f_n_1 = 0,
+		f_n = 1;
+	const float128
+		fi = (1 + boost::multiprecision::sqrt((float128)5.)) / 2;
+	float128
+		f_n_up = 1 / boost::multiprecision::sqrt((float128)5.) * fi;
+	fib.push_back({ "0","0" });
+	fib.push_back({ "1","1" });
+	for (int n = 2; n < 400000; n++) {
+		f_n_1 = std::exchange(f_n, f_n + f_n_1);
+		f_n_up *= fi;
+		if (f_n_up > 1000000000) {
+			f_n_up /= 10;
+		}
+		auto estr = f_n_up.str();
+		fib.push_back({ to_string(f_n % 1000000000), estr.substr(0, estr.find('.')) });
+	}
+	auto iter = std::find_if(std::execution::par_unseq, fib.begin() + 40, fib.end(), [&](std::pair<std::string, std::string> elem)->bool {
+		return is_pd(std::get<0>(elem)) && is_pd(std::get<1>(elem));
+	});
+	auto n = std::distance(fib.begin(), iter);
+	tc.stop();
+	std::cout << n << "	" << tc.measured_timespan().count() << " s" << std::endl;
+}
+
+void bbs() {
+	uint_fast64_t 
+		s = 14025256,
+		m = 20300713;
+	auto sd = [&](uint_fast64_t num) {
+		uint_fast64_t sum = 0;
+		for (int i = 0; i < 8; i++) {
+			sum += num / static_cast<uint_fast64_t>(std::pow(10, i)) % 10;
+		}
+		return sum;
+	};
+	for (int i = 0; i < 1000; i++) {
+		std::cout << i << "	" << sd(s) << std::endl;
+		s = (s * s) % m;
+	}
 }
 
 void C_Test::run() {
@@ -806,16 +942,19 @@ void C_Test::run() {
 	size_t a;
 	cin >> a;*/
 	const size_t N = std::pow(10, 7);
+	StripData dt = { 46 };
+	std::cout << dt.length() << std::endl;
+	//pandigital();
 	if (false) {
 		std::tuple<int, double, unsigned, size_t> t[2] = { {-5, 2.6, 82, 41}, {-5, 2.6, 82, 41} };
 		auto res = t[0] + t[1];
-		tc().start();
+		tc.start();
 		for (int i = 0; i < N; i++) {
 			res += (t[0] + t[1]);
 		}
-		tc().stop();
+		tc.stop();
 		std::cout << std::get<0>(res) << "	" << std::get<1>(res) << "	" << std::get<2>(res) << "	" << std::get<3>(res) << std::endl;
-		std::cout << "tuple+: " << N / tc().measured_timespan().count() << " elems/s" << std::endl;
+		std::cout << "tuple+: " << N / tc.measured_timespan().count() << " elems/s" << std::endl;
 	}
 	if (false) {
 		uint_fast64_t sum = 0;
@@ -828,25 +967,25 @@ void C_Test::run() {
 				elem = rnd();
 			}
 		}
-		tc().start();
+		tc.start();
 		for (auto& arr : arrs) {
 			mp[{arr[0], arr[1], arr[2]}] = arr[3];
 		}
-		tc().stop();
-		std::cout << "array: " << N / tc().measured_timespan().count() << " elems/s" << std::endl;
-		tc().start();
+		tc.stop();
+		std::cout << "array: " << N / tc.measured_timespan().count() << " elems/s" << std::endl;
+		tc.start();
 		for (auto& arr : arrs) {
 			mp2[arr[0]][arr[1]][arr[2]] = arr[3];
 		}
-		tc().stop();
-		std::cout << "nested_maps: " << N / tc().measured_timespan().count() << " elems/s" << std::endl;
-		tc().start();
+		tc.stop();
+		std::cout << "nested_maps: " << N / tc.measured_timespan().count() << " elems/s" << std::endl;
+		tc.start();
 		sum = std::transform_reduce(mp.begin(), mp.end(), uint_fast64_t(), std::plus<>(), [&](auto& elem) {
 			return elem.second;
 		});
-		tc().stop();
-		std::cout << "suma - array: " << N / tc().measured_timespan().count() << " elems/s" << std::endl;
-		tc().start();
+		tc.stop();
+		std::cout << "suma - array: " << N / tc.measured_timespan().count() << " elems/s" << std::endl;
+		tc.start();
 		sum = std::transform_reduce(mp2.begin(), mp2.end(), uint_fast64_t(), std::plus<>(), [](auto& elem)->uint_fast64_t {
 			return std::transform_reduce(elem.second.begin(), elem.second.end(), uint_fast64_t(), std::plus<>(), [](auto& elem)->uint_fast64_t {
 				return std::transform_reduce(elem.second.begin(), elem.second.end(), uint_fast64_t(), std::plus<>(), [&](auto& elem)->uint_fast64_t {
@@ -854,8 +993,8 @@ void C_Test::run() {
 				});
 			});
 		});
-		tc().stop();
-		std::cout << "suma - nested_maps: " << N / tc().measured_timespan().count() << " elems/s" << std::endl;
+		tc.stop();
+		std::cout << "suma - nested_maps: " << N / tc.measured_timespan().count() << " elems/s" << std::endl;
 	}
 	if (false) {
 		uint_fast64_t
@@ -875,18 +1014,18 @@ void C_Test::run() {
 		}*/
 		std::function ref = std::gcd<uint_fast64_t, uint_fast64_t>;
 		C_RV_Storage fn = std::function{ std::gcd<uint_fast64_t, uint_fast64_t> };
-		tc().start();
+		tc.start();
 		for (size_t i = 0; i < N; i++) {
 			vecs[2][i] = std::gcd(vecs[0][i], vecs[1][i]);
 		}
-		tc().stop();
-		std::cout << "Czas (normalne): " << N / tc().measured_timespan().count() << "elem./s" << endl;
-		tc().start();
+		tc.stop();
+		std::cout << "Czas (normalne): " << N / tc.measured_timespan().count() << "elem./s" << endl;
+		tc.start();
 		for (size_t i = 0; i < N; i++) {
 			vecs[2][i] = fn(vecs[0][i], vecs[1][i]);
 		}
-		tc().stop();
-		std::cout << "Czas (CVRR): " << N / tc().measured_timespan().count() << "elem./s" << endl;
+		tc.stop();
+		std::cout << "Czas (CVRR): " << N / tc.measured_timespan().count() << "elem./s" << endl;
 	}
 	if (false) {
 		uint_fast64_t lim;
@@ -914,7 +1053,10 @@ void C_Test::run() {
 	//xml_test(event_log);
 	//bitset_test();
 	//tuple_size_test();
-	matplotlib_test();
+	//matplotlib_test();
+	//interpolation();
+	//polynomial_test();
+	bbs();
 	/*distance_test();
 	//sum_arrays(a);
 	max_test();

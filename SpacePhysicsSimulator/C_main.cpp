@@ -40,7 +40,7 @@ bool C_Main::run() {
 			return false;
 		case 1:
 		{
-			C_Universe(settings_obj, event_log_obj, main_path.wstring() + L"/simulations").run();
+			C_Universe(settings_obj, event_log_obj).run();
 			break;
 		}
 		case 2:

@@ -36,7 +36,6 @@ namespace Windows {
 #include "constants.h"
 #undef max
 #undef min
-using namespace std;
 
 class C_Settings;
 
@@ -56,8 +55,8 @@ private:
 		backup_file;
 	mutex
 		mut_ex;
-	const filesystem::path
-		recording_path;
+	const std::filesystem::path
+		recording_path = filesystem::current_path() / L"simulations";
 	unique_ptr<PCL::C_Barrier>
 		barrier;
 	std::vector<C_Object>
@@ -82,7 +81,7 @@ private:
 		E_c_0 = 0,
 		E_c_k = 0;
 public:
-	C_Universe(unique_ptr<C_Settings>& set_obj, PCL::C_Event_Log& ev_log_obj, wstring rp);
+	C_Universe(unique_ptr<C_Settings>& set_obj, PCL::C_Event_Log& ev_log_obj);
 	~C_Universe() = default;
 	void
 		run() override;
@@ -95,7 +94,8 @@ public:
 		data_change(),
 		data_log(),
 		simulation_directory_create(),
-		simulation_packed_thread(),
+		simulation_packed_thread(), 
+		simulation_packed(),
 		simulation_preperator(),
 		action_choice(),
 		result_recording();

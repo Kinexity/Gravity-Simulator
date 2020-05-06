@@ -13,20 +13,21 @@ double C_Object::velocity_val() {
 }
 
 void C_Object::data_rand(uint_fast64_t noo) {
-	srand(clock() * object_id);
-	mass = static_cast<double>(rnd() % 900 + 100)* pow(10, rnd() % 20 + 10);
+	static std::random_device rd;
+	static std::uniform_real_distribution urdist(0.19884, std::nextafter(1.9884, std::numeric_limits<double>::max()));
+	mass = urdist(rd) * pow(10, 29);
 	radius = pow(10, 1);
 	auto x = static_cast<uint_fast64_t>(sqrt(cbrt(noo)));
 	auto min_pow = 6;
 	position = {
-		((static_cast<double>(rnd() % 9000000 + 1000000))* pow(10, rnd() % 5 + min_pow)* ((rnd() % 2 == 1) ? 1.0 : -1.0)),
-		((static_cast<double>(rnd() % 9000000 + 1000000))* pow(10, rnd() % 5 + min_pow)* ((rnd() % 2 == 1) ? 1.0 : -1.0)),
-		((static_cast<double>(rnd() % 9000000 + 1000000))* pow(10, rnd() % 5 + min_pow)* ((rnd() % 2 == 1) ? 1.0 : -1.0))
+		((static_cast<double>(rnd() % 9000000 + 1000000)) * pow(10, rnd() % 5 + min_pow) * ((rnd() % 2 == 1) ? 1.0 : -1.0)),
+		((static_cast<double>(rnd() % 9000000 + 1000000)) * pow(10, rnd() % 5 + min_pow) * ((rnd() % 2 == 1) ? 1.0 : -1.0)),
+		((static_cast<double>(rnd() % 9000000 + 1000000)) * pow(10, rnd() % 5 + min_pow) * ((rnd() % 2 == 1) ? 1.0 : -1.0))
 	};
 	velocity = {
-		(static_cast<double>(rnd() % 9000 + 1000)* ((rnd() % 2 == 1) ? 1.0 : -1.0)),
-		(static_cast<double>(rnd() % 9000 + 1000)* ((rnd() % 2 == 1) ? 1.0 : -1.0)),
-		(static_cast<double>(rnd() % 9000 + 1000)* ((rnd() % 2 == 1) ? 1.0 : -1.0))
+		(static_cast<double>(rnd() % 9000 + 1000) * ((rnd() % 2 == 1) ? 1.0 : -1.0)),
+		(static_cast<double>(rnd() % 9000 + 1000) * ((rnd() % 2 == 1) ? 1.0 : -1.0)),
+		(static_cast<double>(rnd() % 9000 + 1000) * ((rnd() % 2 == 1) ? 1.0 : -1.0))
 	};
 }
 
