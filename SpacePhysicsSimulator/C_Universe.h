@@ -39,6 +39,8 @@ namespace Windows {
 
 class C_Settings;
 
+inline constexpr auto dimensions = 3;
+
 class C_Universe : public C_Base {
 private:
 	uint_fast64_t

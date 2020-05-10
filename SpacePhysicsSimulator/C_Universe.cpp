@@ -86,10 +86,10 @@ C_Universe::C_Universe(unique_ptr<C_Settings>& set_obj, PCL::C_Event_Log& ev_log
 						floor(
 							log2(
 								settings_obj->get_settings().ram_GiB_limit * pow(2, 30) / sizeof(decltype(C_Object::position)) / sim_basic_data().num_of_objects
-								)
 							)
 						)
-					)
+						)
+				)
 				), sim_basic_data().sim_duration);
 			if (period_lenght > 0) {
 				if (period_lenght != sim_basic_data().sim_duration) {
@@ -196,9 +196,9 @@ inline void C_Universe::simulation_packed_thread() {
 	uint32_t
 		sync_flag_index = 0;
 	static unique_ptr< unique_ptr<double[]>[]>
-		pos,
-		vel,
-		acc;
+		position,
+		velocity,
+		acceleration;
 	static unique_ptr<double[]>
 		sgp_arr;
 	static unique_ptr<mutex[]>
@@ -255,26 +255,22 @@ inline void C_Universe::simulation_packed_thread() {
 		barrier->arrive_and_wait();
 	}
 	std::call_once(sync_flags[sync_flag_index++], [&] {
-		for (auto vec_type = 0; vec_type < 3; vec_type++) {
-			pos = make_unique<unique_ptr<double[]>[]>(3);
-			vel = make_unique<unique_ptr<double[]>[]>(3);
-			acc = make_unique<unique_ptr<double[]>[]>(3);
-			for (auto vec_dim = 0; vec_dim < 3; vec_dim++) {
-				pos[vec_dim] = make_unique<double[]>(sim_basic_data().num_of_objects + 3);
-				vel[vec_dim] = make_unique<double[]>(sim_basic_data().num_of_objects + 3);
-				acc[vec_dim] = make_unique<double[]>(sim_basic_data().num_of_objects + 3);
+		for (auto vec_type = 0; vec_type < 2; vec_type++) {
+			position = make_unique<unique_ptr<double[]>[]>(dimensions);
+			velocity = make_unique<unique_ptr<double[]>[]>(dimensions);
+			acceleration = make_unique<unique_ptr<double[]>[]>(dimensions);
+			for (auto axis = 0; axis < dimensions; axis++) {
+				position[axis] = make_unique<double[]>(sim_basic_data().num_of_objects + 3);
+				velocity[axis] = make_unique<double[]>(sim_basic_data().num_of_objects + 3);
+				acceleration[axis] = make_unique<double[]>(sim_basic_data().num_of_objects + 3);
 				std::for_each(std::execution::par_unseq, obj_arr.begin(), obj_arr.end(), [&](C_Object& obj) {
 					switch (vec_type) {
 					case 0: {
-						pos[vec_dim][obj.object_id] = obj.position[vec_dim];
+						position[axis][obj.object_id] = obj.position[axis];
 						break;
 					}
 					case 1: {
-						vel[vec_dim][obj.object_id] = obj.velocity[vec_dim];
-						break;
-					}
-					case 2: {
-						acc[vec_dim][obj.object_id] = obj.acceleration[vec_dim];
+						velocity[axis][obj.object_id] = obj.velocity[axis];
 						break;
 					}
 					}
@@ -287,8 +283,8 @@ inline void C_Universe::simulation_packed_thread() {
 		});
 		for (auto obj_id = sim_basic_data().num_of_objects; obj_id < sim_basic_data().num_of_objects + 3; obj_id++) {
 			sgp_arr[obj_id] = 0;
-			for (auto vec_dim = 0; vec_dim < 3; vec_dim++) {
-				pos[vec_dim][obj_id] = pow(rnd() % 10, rnd() % 10 + 10);
+			for (auto axis = 0; axis < dimensions; axis++) {
+				position[axis][obj_id] = pow(rnd() % 10, rnd() % 10 + 10);
 			}
 		}
 		mutex_arr = make_unique<mutex[]>(sim_basic_data().num_of_objects + 3);
@@ -339,29 +335,26 @@ inline void C_Universe::simulation_packed_thread() {
 	const auto
 		zero_avx = _mm256_setzero_pd();
 	__m256d
-		pos_x = zero_avx,
-		pos_y = zero_avx,
-		pos_z = zero_avx,
-		acc_obj_x = zero_avx,
-		acc_obj_y = zero_avx,
-		acc_obj_z = zero_avx,
+		pos[dimensions] = { zero_avx },
+		vec[dimensions] = { zero_avx },
+		acc_obj[dimensions] = { zero_avx },
 		sgp = zero_avx;
 	auto
-		temp_acc = std::make_unique<unique_ptr<double[]>[]>(3);
-	static std::map<uint_fast64_t, std::reference_wrapper<decltype(temp_acc)>> temp_acc_arr;
+		temp_acceleration = std::make_unique<unique_ptr<double[]>[]>(3);
+	static std::map<uint_fast64_t, std::reference_wrapper<decltype(temp_acceleration)>> temp_acc_arr;
 	std::call_once(sync_flags[sync_flag_index++], [&] {
 		temp_acc_arr.clear();
 	});
 	barrier->arrive_and_wait();
 	{
 		std::unique_lock<std::mutex> lck(mut_ex);
-		temp_acc_arr.insert({ thr_index, temp_acc });
+		temp_acc_arr.insert({ thr_index, temp_acceleration });
 	}
 	barrier->arrive_and_wait();
 	static std::vector<uint_fast64_t> range_lims;
 	std::call_once(sync_flags[sync_flag_index++], [&] {
 		auto work = std::transform_reduce(arr_start_point_arr.begin(), arr_start_point_arr.end(), uint_fast64_t(), std::plus<>(), [&](auto asp) { return sim_basic_data().num_of_objects - asp; });
-		work = work / 12 + (work % 12 == 0 ? 0 : 1);
+		work = work / num_of_threads_in_use + (work % num_of_threads_in_use == 0 ? 0 : 1);
 		range_lims.resize(num_of_threads_in_use + 1);
 		range_lims[0] = 0;
 		size_t
@@ -381,8 +374,8 @@ inline void C_Universe::simulation_packed_thread() {
 		}
 		range_lims[num_of_threads_in_use] = sim_basic_data().num_of_objects;
 	});
-	for (auto axis = 0; axis < 3; axis++) {
-		temp_acc[axis] = make_unique<double[]>(sim_basic_data().num_of_objects + 3);
+	for (auto axis = 0; axis < dimensions; axis++) {
+		temp_acceleration[axis] = make_unique<double[]>(sim_basic_data().num_of_objects + 3);
 	}
 	barrier->arrive_and_wait();
 	E_c_0.fetch_add(system_energy());
@@ -402,58 +395,54 @@ inline void C_Universe::simulation_packed_thread() {
 		barrier->arrive_and_wait();
 		for (uint_fast64_t second = 1; second <= period_lenght; second++) {
 			for (uint_fast64_t sec_cycle = 0; sec_cycle < cycles_per_second; sec_cycle++) {
-				for (auto axis = 0; axis < 3; axis++) {
-					std::fill(std::execution::par, &(temp_acc[axis][0]), &(temp_acc[axis][sim_basic_data().num_of_objects]), 0.0); //clear temp_acc
-					std::fill(std::execution::par, &(acc[axis][eq_arr_start_point]), &(acc[axis][eq_arr_end_point]), 0.0); //clear acc
+				for (auto axis = 0; axis < dimensions; axis++) {
+					std::fill(std::execution::par, &(temp_acceleration[axis][0]), &(temp_acceleration[axis][sim_basic_data().num_of_objects]), 0.0); //clear temp_acceleration
+					std::fill(std::execution::par, &(acceleration[axis][eq_arr_start_point]), &(acceleration[axis][eq_arr_end_point]), 0.0); //clear acceleration
 				}
 				barrier->arrive_and_wait();
 				for (uint_fast64_t obj_id = arr_start_point; obj_id < arr_end_point; obj_id += 4) {
-					pos_x = _mm256_load_pd(&(pos[0][obj_id]));
-					pos_y = _mm256_load_pd(&(pos[1][obj_id]));
-					pos_z = _mm256_load_pd(&(pos[2][obj_id]));
 					sgp = _mm256_load_pd(&(sgp_arr[obj_id]));
-					acc_obj_x = zero_avx;
-					acc_obj_y = zero_avx;
-					acc_obj_z = zero_avx;
+					for (auto axis = 0; axis < dimensions; axis++) {
+						pos[axis] = _mm256_load_pd(&(position[axis][obj_id]));
+						acc_obj[axis] = zero_avx;
+					}
 					for (uint_fast64_t op_obj_id = obj_id + 1; op_obj_id < sim_basic_data().num_of_objects; op_obj_id++) {
-						const auto&& vec_x = _mm256_sub_pd(_mm256_load_pd(&(pos[0][op_obj_id])), pos_x); //calculate distance vectors
-						const auto&& vec_y = _mm256_sub_pd(_mm256_load_pd(&(pos[1][op_obj_id])), pos_y);
-						const auto&& vec_z = _mm256_sub_pd(_mm256_load_pd(&(pos[2][op_obj_id])), pos_z);
-						const auto&& dist_2 = _mm256_fmadd_pd(vec_x, vec_x, _mm256_fmadd_pd(vec_y, vec_y, _mm256_mul_pd(vec_z, vec_z)));
+						for (auto axis = 0; axis < dimensions; axis++) {
+							vec[axis] = _mm256_sub_pd(_mm256_load_pd(&(position[axis][op_obj_id])), pos[axis]); //calculate distance vectors
+						}
+						const auto&& dist_2 = _mm256_fmadd_pd(vec[0], vec[0], _mm256_fmadd_pd(vec[1], vec[1], _mm256_mul_pd(vec[2], vec[2])));
 						const auto&& dist_3 = _mm256_mul_pd(dist_2, _mm256_sqrt_pd(dist_2));
 						const auto&& scaled_sgp_op = _mm256_div_pd(_mm256_load_pd(&(sgp_arr[op_obj_id])), dist_3);
 						const auto&& scaled_sgp = _mm256_div_pd(sgp, dist_3);
-						acc_obj_x = _mm256_fmadd_pd(vec_x, scaled_sgp_op, acc_obj_x); //obj_id acc from op_obj_id
-						acc_obj_y = _mm256_fmadd_pd(vec_y, scaled_sgp_op, acc_obj_y);
-						acc_obj_z = _mm256_fmadd_pd(vec_z, scaled_sgp_op, acc_obj_z);
-						_mm256_store_pd(&(temp_acc[0][op_obj_id]), _mm256_fnmadd_pd(vec_x, scaled_sgp, _mm256_load_pd(&(temp_acc[0][op_obj_id])))); //op_obj_id acc from obj_id and save to temp_acc
-						_mm256_store_pd(&(temp_acc[1][op_obj_id]), _mm256_fnmadd_pd(vec_y, scaled_sgp, _mm256_load_pd(&(temp_acc[1][op_obj_id]))));
-						_mm256_store_pd(&(temp_acc[2][op_obj_id]), _mm256_fnmadd_pd(vec_z, scaled_sgp, _mm256_load_pd(&(temp_acc[2][op_obj_id]))));
+						for (auto axis = 0; axis < dimensions; axis++) {
+							acc_obj[axis] = _mm256_fmadd_pd(vec[axis], scaled_sgp_op, acc_obj[axis]); //obj_id acceleration from op_obj_id
+							_mm256_store_pd(&(temp_acceleration[axis][op_obj_id]), _mm256_fnmadd_pd(vec[axis], scaled_sgp, _mm256_load_pd(&(temp_acceleration[axis][op_obj_id])))); //op_obj_id acceleration from obj_id and save to temp_acceleration
+						}
 					}
-					_mm256_store_pd(&(temp_acc[0][obj_id]), _mm256_add_pd(acc_obj_x, _mm256_load_pd(&(temp_acc[0][obj_id])))); //obj_id acc save to temp_acc
-					_mm256_store_pd(&(temp_acc[1][obj_id]), _mm256_add_pd(acc_obj_y, _mm256_load_pd(&(temp_acc[1][obj_id]))));
-					_mm256_store_pd(&(temp_acc[2][obj_id]), _mm256_add_pd(acc_obj_z, _mm256_load_pd(&(temp_acc[2][obj_id]))));
+					for (auto axis = 0; axis < dimensions; axis++) {
+						_mm256_store_pd(&(temp_acceleration[axis][obj_id]), _mm256_add_pd(acc_obj[axis], _mm256_load_pd(&(temp_acceleration[axis][obj_id])))); //obj_id acceleration save to temp_acceleration
+					}
 				}
 				barrier->arrive_and_wait();
 				for (uint_fast64_t op_obj_id = arr_start_point; op_obj_id < sim_basic_data().num_of_objects; op_obj_id += 4) {
-					for (auto axis = 0; axis < 3; axis++) {
-						_mm256_store_pd(&(acc[axis][op_obj_id]), _mm256_add_pd(_mm256_load_pd(&(acc[axis][op_obj_id])), _mm256_load_pd(&(temp_acc[axis][op_obj_id])))); //sum acc from threads
+					for (auto axis = 0; axis < dimensions; axis++) {
+						_mm256_store_pd(&(acceleration[axis][op_obj_id]), _mm256_add_pd(_mm256_load_pd(&(acceleration[axis][op_obj_id])), _mm256_load_pd(&(temp_acceleration[axis][op_obj_id])))); //sum acceleration from threads
 					}
 				}
 				barrier->arrive_and_wait();
 				for (auto obj_id = eq_arr_start_point; obj_id < eq_arr_end_point; obj_id += 4) {
-					for (auto axis = 0; axis < 3; axis++) {
-						_mm256_store_pd(&(vel[axis][obj_id]), _mm256_fmadd_pd(_mm256_load_pd(&(acc[axis][obj_id])), cps, _mm256_load_pd(&(vel[axis][obj_id])))); //update pos and vel
-						_mm256_store_pd(&(pos[axis][obj_id]), _mm256_fmadd_pd(_mm256_load_pd(&(vel[axis][obj_id])), cps, _mm256_load_pd(&(pos[axis][obj_id]))));
+					for (auto axis = 0; axis < dimensions; axis++) {
+						_mm256_store_pd(&(velocity[axis][obj_id]), _mm256_fmadd_pd(_mm256_load_pd(&(acceleration[axis][obj_id])), cps, _mm256_load_pd(&(velocity[axis][obj_id])))); //update position and velocity
+						_mm256_store_pd(&(position[axis][obj_id]), _mm256_fmadd_pd(_mm256_load_pd(&(velocity[axis][obj_id])), cps, _mm256_load_pd(&(position[axis][obj_id]))));
 					}
 				}
 			}
 		}
 		barrier->arrive_and_wait();
-		if (thr_index == 0) {
+		std::call_once(sync_flags[sync_flag_index++], [&] {
 			tc.stop();
 			*event_log_buffer << period_ord << "	" << tc.measured_timespan().count() << _endl_;
-		}
+		});
 		barrier->arrive_and_wait();
 	}
 	{ //after-sim log
@@ -482,22 +471,22 @@ inline void C_Universe::simulation_packed() {
 	std::vector<std::mutex>
 		mutex_arr(sim_basic_data().num_of_objects + 3);
 	std::array< std::vector<double>, 3>
-		pos,
-		vel,
-		acc;
+		position,
+		velocity,
+		acceleration;
 	std::vector<double>
 		sgp_arr;
 	const uint_fast64_t
 		arr_start_point = 0,
 		arr_end_point = sim_basic_data().num_of_objects;
 	for (auto vec_dim = 0; vec_dim < 3; vec_dim++) {
-		pos[vec_dim].resize(sim_basic_data().num_of_objects + 3);
-		vel[vec_dim].resize(sim_basic_data().num_of_objects + 3);
-		acc[vec_dim].resize(sim_basic_data().num_of_objects + 3);
+		position[vec_dim].resize(sim_basic_data().num_of_objects + 3);
+		velocity[vec_dim].resize(sim_basic_data().num_of_objects + 3);
+		acceleration[vec_dim].resize(sim_basic_data().num_of_objects + 3);
 		std::for_each(std::execution::par_unseq, obj_arr.begin(), obj_arr.end(), [&](C_Object& obj) {
-			pos[vec_dim][obj.object_id] = obj.position[vec_dim];
-			vel[vec_dim][obj.object_id] = obj.velocity[vec_dim];
-			acc[vec_dim][obj.object_id] = obj.acceleration[vec_dim];
+			position[vec_dim][obj.object_id] = obj.position[vec_dim];
+			velocity[vec_dim][obj.object_id] = obj.velocity[vec_dim];
+			acceleration[vec_dim][obj.object_id] = obj.acceleration[vec_dim];
 		});
 	}
 	sgp_arr.resize(sim_basic_data().num_of_objects + 3);
@@ -507,7 +496,7 @@ inline void C_Universe::simulation_packed() {
 	for (auto obj_id = sim_basic_data().num_of_objects; obj_id < sim_basic_data().num_of_objects + 3; obj_id++) {
 		sgp_arr[obj_id] = 0;
 		for (auto vec_dim = 0; vec_dim < 3; vec_dim++) {
-			pos[vec_dim][obj_id] = pow(rnd() % 10, rnd() % 10 + 10);
+			position[vec_dim][obj_id] = pow(rnd() % 10, rnd() % 10 + 10);
 		}
 	}
 	{ //pre-sim log
@@ -569,48 +558,48 @@ inline void C_Universe::simulation_packed() {
 		}
 		for (uint_fast64_t second = 1; second <= period_lenght; second++) {
 			for (uint_fast64_t sec_cycle = 0; sec_cycle < cycles_per_second; sec_cycle++) {
-				std::for_each(std::execution::par_unseq, acc.begin(), acc.end(), [&](auto& acc_axis) {
-					std::fill(std::execution::par_unseq, acc_axis.begin(), acc_axis.end(), 0.0); //clear acc
+				std::for_each(std::execution::par_unseq, acceleration.begin(), acceleration.end(), [&](auto& acc_axis) {
+					std::fill(std::execution::par_unseq, acc_axis.begin(), acc_axis.end(), 0.0); //clear acceleration
 				});
 				std::for_each(std::execution::par_unseq, reduced_obj_indices.begin(), reduced_obj_indices.end(), [&](size_t obj_id) {
-					pos_x = _mm256_load_pd(&(pos[0][obj_id]));
-					pos_y = _mm256_load_pd(&(pos[1][obj_id]));
-					pos_z = _mm256_load_pd(&(pos[2][obj_id]));
+					pos_x = _mm256_load_pd(&(position[0][obj_id]));
+					pos_y = _mm256_load_pd(&(position[1][obj_id]));
+					pos_z = _mm256_load_pd(&(position[2][obj_id]));
 					sgp = _mm256_load_pd(&(sgp_arr[obj_id]));
 					acc_obj_x = zero_avx;
 					acc_obj_y = zero_avx;
 					acc_obj_z = zero_avx;
 					std::for_each(std::execution::par_unseq, obj_indices.begin() + obj_id + 1, obj_indices.end(), [&](size_t op_obj_id) {
-						const auto&& vec_x = _mm256_sub_pd(_mm256_load_pd(&(pos[0][op_obj_id])), pos_x); //calculate distance vectors
-						const auto&& vec_y = _mm256_sub_pd(_mm256_load_pd(&(pos[1][op_obj_id])), pos_y);
-						const auto&& vec_z = _mm256_sub_pd(_mm256_load_pd(&(pos[2][op_obj_id])), pos_z);
+						const auto&& vec_x = _mm256_sub_pd(_mm256_load_pd(&(position[0][op_obj_id])), pos_x); //calculate distance vectors
+						const auto&& vec_y = _mm256_sub_pd(_mm256_load_pd(&(position[1][op_obj_id])), pos_y);
+						const auto&& vec_z = _mm256_sub_pd(_mm256_load_pd(&(position[2][op_obj_id])), pos_z);
 						const auto&& dist_2 = _mm256_fmadd_pd(vec_x, vec_x, _mm256_fmadd_pd(vec_y, vec_y, _mm256_mul_pd(vec_z, vec_z)));
 						const auto&& dist_3 = _mm256_mul_pd(dist_2, _mm256_sqrt_pd(dist_2));
 						const auto&& scaled_sgp_op = _mm256_div_pd(_mm256_load_pd(&(sgp_arr[op_obj_id])), dist_3);
 						const auto&& scaled_sgp = _mm256_div_pd(sgp, dist_3);
-						acc_obj_x = _mm256_fmadd_pd(vec_x, scaled_sgp_op, acc_obj_x); //obj_id acc from op_obj_id
+						acc_obj_x = _mm256_fmadd_pd(vec_x, scaled_sgp_op, acc_obj_x); //obj_id acceleration from op_obj_id
 						acc_obj_y = _mm256_fmadd_pd(vec_y, scaled_sgp_op, acc_obj_y);
 						acc_obj_z = _mm256_fmadd_pd(vec_z, scaled_sgp_op, acc_obj_z);
 						{
 							lock(op_obj_id);
-							_mm256_store_pd(&(acc[0][op_obj_id]), _mm256_fnmadd_pd(vec_x, scaled_sgp, _mm256_load_pd(&(acc[0][op_obj_id])))); //op_obj_id acc from obj_id and save to acc
-							_mm256_store_pd(&(acc[1][op_obj_id]), _mm256_fnmadd_pd(vec_y, scaled_sgp, _mm256_load_pd(&(acc[1][op_obj_id]))));
-							_mm256_store_pd(&(acc[2][op_obj_id]), _mm256_fnmadd_pd(vec_z, scaled_sgp, _mm256_load_pd(&(acc[2][op_obj_id]))));
+							_mm256_store_pd(&(acceleration[0][op_obj_id]), _mm256_fnmadd_pd(vec_x, scaled_sgp, _mm256_load_pd(&(acceleration[0][op_obj_id])))); //op_obj_id acceleration from obj_id and save to acceleration
+							_mm256_store_pd(&(acceleration[1][op_obj_id]), _mm256_fnmadd_pd(vec_y, scaled_sgp, _mm256_load_pd(&(acceleration[1][op_obj_id]))));
+							_mm256_store_pd(&(acceleration[2][op_obj_id]), _mm256_fnmadd_pd(vec_z, scaled_sgp, _mm256_load_pd(&(acceleration[2][op_obj_id]))));
 							unlock(op_obj_id);
 						}
 					});
 					{
 						lock(obj_id);
-						_mm256_store_pd(&(acc[0][obj_id]), _mm256_add_pd(acc_obj_x, _mm256_load_pd(&(acc[0][obj_id])))); //obj_id acc save to acc
-						_mm256_store_pd(&(acc[1][obj_id]), _mm256_add_pd(acc_obj_y, _mm256_load_pd(&(acc[1][obj_id]))));
-						_mm256_store_pd(&(acc[2][obj_id]), _mm256_add_pd(acc_obj_z, _mm256_load_pd(&(acc[2][obj_id]))));
+						_mm256_store_pd(&(acceleration[0][obj_id]), _mm256_add_pd(acc_obj_x, _mm256_load_pd(&(acceleration[0][obj_id])))); //obj_id acceleration save to acceleration
+						_mm256_store_pd(&(acceleration[1][obj_id]), _mm256_add_pd(acc_obj_y, _mm256_load_pd(&(acceleration[1][obj_id]))));
+						_mm256_store_pd(&(acceleration[2][obj_id]), _mm256_add_pd(acc_obj_z, _mm256_load_pd(&(acceleration[2][obj_id]))));
 						unlock(obj_id);
 					}
 				});
 				std::for_each(std::execution::par_unseq, axises.begin(), axises.end(), [&](size_t axis) {
-					std::transform(std::execution::par_unseq, reduced_obj_indices.begin(), reduced_obj_indices.end(), (__m256d*) & pos[axis][0], [&](size_t obj_id) {
-						_mm256_store_pd(&(vel[axis][obj_id]), _mm256_fmadd_pd(_mm256_load_pd(&(acc[axis][obj_id])), cps, _mm256_load_pd(&(vel[axis][obj_id])))); //update pos and vel
-						return _mm256_fmadd_pd(_mm256_load_pd(&(vel[axis][obj_id])), cps, _mm256_load_pd(&(pos[axis][obj_id])));
+					std::transform(std::execution::par_unseq, reduced_obj_indices.begin(), reduced_obj_indices.end(), (__m256d*) & position[axis][0], [&](size_t obj_id) {
+						_mm256_store_pd(&(velocity[axis][obj_id]), _mm256_fmadd_pd(_mm256_load_pd(&(acceleration[axis][obj_id])), cps, _mm256_load_pd(&(velocity[axis][obj_id])))); //update position and velocity
+						return _mm256_fmadd_pd(_mm256_load_pd(&(velocity[axis][obj_id])), cps, _mm256_load_pd(&(position[axis][obj_id])));
 					});
 				});
 			}

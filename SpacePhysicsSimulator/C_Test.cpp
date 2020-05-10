@@ -424,7 +424,7 @@ void xml_test(PCL::C_Event_Log_Base& ev_log) {
 	std::cout << xml << endl;
 	xml.set_path("trolololo\\inside", true);
 	std::cout << "Podaj nazwe node'a so usuniecia: ";
-	cin >> temp;
+	std::cin >> temp;
 	std::cout << "Node istnieje: " << boolalpha << xml.exists<PCL::XML_Node>(temp) << endl;
 	xml.get<>().erase(temp);
 	std::cout << "Node istnieje: " << boolalpha << xml.exists<PCL::XML_Node>(temp) << endl;
@@ -709,15 +709,15 @@ void Lagrange_points() {
 		L_N;
 	std::cout << line << endl;
 	std::cout << "Numer punktu: ";
-	cin >> L_N;
+	std::cin >> L_N;
 	std::cout << "Masa 1: ";
-	cin >> mass[0];
+	std::cin >> mass[0];
 	std::cout << "Masa 2: ";
-	cin >> mass[1];
+	std::cin >> mass[1];
 	std::cout << "Odleglosc: ";
-	cin >> distance;
+	std::cin >> distance;
 	std::cout << "Dokladnosc: ";
-	cin >> accurancy;
+	std::cin >> accurancy;
 	std::cout << "Odleglosc od ciala dominujacego: " << L_radius(L_N, mass, distance, accurancy) << " m" << endl;
 }
 
@@ -918,7 +918,7 @@ void pandigital() {
 }
 
 void bbs() {
-	uint_fast64_t 
+	uint_fast64_t
 		s = 14025256,
 		m = 20300713;
 	auto sd = [&](uint_fast64_t num) {
@@ -934,6 +934,72 @@ void bbs() {
 	}
 }
 
+double a = 0.;
+using namespace boost::multiprecision;
+std::vector<double> sqrt_list;
+size_t length_of_sqrt_list = 0;
+std::vector<uint1024_t> factorials, powers_of_2;
+std::vector<size_t> indices;
+
+uint1024_t gen_and_check(double sequence_sqrt_sum, size_t sequence_length, uint1024_t possible_sequence_permutations, size_t sqrt_list_index) {
+	uint1024_t possible_sequences_permutations_sum_local = 0;
+	auto places_to_insert_new_sqrt = sequence_length + 1;
+	auto new_sum = a - sequence_sqrt_sum;
+	for (auto sqrt_to_insert_index = sqrt_list_index; sqrt_to_insert_index < length_of_sqrt_list; sqrt_to_insert_index++) {
+		auto sqrt_to_insert = sqrt_list[sqrt_to_insert_index];
+		auto max_possible_sqrts_inserted = static_cast<size_t>(std::floor(new_sum / sqrt_to_insert));
+		for (size_t number_of_sqrts_inserted = 1; number_of_sqrts_inserted <= max_possible_sqrts_inserted; number_of_sqrts_inserted++) {
+			uint1024_t possible_ways_to_insert = factorials[number_of_sqrts_inserted + places_to_insert_new_sqrt - 1] / (factorials[number_of_sqrts_inserted] * factorials[places_to_insert_new_sqrt - 1]);
+			auto inserted_elements_sign_variations = powers_of_2[number_of_sqrts_inserted];
+			auto possible_sequence_permutations_local = possible_sequence_permutations * possible_ways_to_insert * inserted_elements_sign_variations;
+			auto new_sequence_sqrt_sum = sequence_sqrt_sum + number_of_sqrts_inserted * sqrt_to_insert;
+			auto new_sqrt_list_index = sqrt_to_insert_index + 1;
+			possible_sequences_permutations_sum_local += possible_sequence_permutations_local;
+			if (new_sqrt_list_index < length_of_sqrt_list) {
+				auto new_sequence_length = sequence_length + number_of_sqrts_inserted;
+				possible_sequences_permutations_sum_local += gen_and_check(new_sequence_sqrt_sum, new_sequence_length, possible_sequence_permutations_local, new_sqrt_list_index);
+			}
+		}
+	}
+	return possible_sequences_permutations_sum_local;
+}
+
+uint1024_t _run_(double a_arg) {
+	a = a_arg;
+	sqrt_list.clear();
+	auto n = static_cast<int>(std::ceil(std::sqrt(1 + 4 * a * a) + 1));
+	for (int i = 1; i < n; i++) {
+		sqrt_list.push_back(sqrt(i / 2. * (i / 2. + 1)));
+	}
+	length_of_sqrt_list = sqrt_list.size();
+	return gen_and_check(0, 0, 1, 0);
+}
+
+void sq_test() {
+	powers_of_2.clear();
+	factorials.clear();
+	uint256_t power_2 = 1;
+	for (auto i = 0; i < 500; i++) {
+		powers_of_2.push_back(power_2);
+		power_2 *= 2;
+	}
+	factorials.push_back(1);
+	factorials.push_back(1);
+	uint1024_t factorial = 1;
+	for (int mtpl = 2; mtpl < 200; mtpl++) {
+		factorial *= mtpl;
+		factorials.push_back(factorial);
+	}
+	indices.resize(1000);
+	std::iota(indices.begin(), indices.end(), 0);
+	for (auto i = 1; i < 200; i++) {
+		tc.start();
+		auto res = _run_(i);
+		tc.stop();
+		std::cout << i << "	" << res << "	" << tc.measured_timespan().count() << '\n';
+	}
+}
+
 void C_Test::run() {
 	/*std::tuple<double, int, std::string> tst_tup;
 	std::string str = "342.63 2865 kot_zuje_gume_do_zucia";
@@ -942,8 +1008,8 @@ void C_Test::run() {
 	size_t a;
 	cin >> a;*/
 	const size_t N = std::pow(10, 7);
-	StripData dt = { 46 };
-	std::cout << dt.length() << std::endl;
+	//StripData dt = { 46 };
+	//std::cout << dt.length() << std::endl;
 	//pandigital();
 	if (false) {
 		std::tuple<int, double, unsigned, size_t> t[2] = { {-5, 2.6, 82, 41}, {-5, 2.6, 82, 41} };
@@ -1031,7 +1097,7 @@ void C_Test::run() {
 		uint_fast64_t lim;
 		bool result = true;
 		std::cout << line << endl << "Ile sprawdziæ: ";
-		cin >> lim;
+		std::cin >> lim;
 		double
 			sum = double(1),
 			inv_sqrt;
@@ -1056,7 +1122,7 @@ void C_Test::run() {
 	//matplotlib_test();
 	//interpolation();
 	//polynomial_test();
-	bbs();
+	//bbs();
 	/*distance_test();
 	//sum_arrays(a);
 	max_test();
@@ -1082,4 +1148,5 @@ void C_Test::run() {
 		std::cout << endl;
 	}
 	std::cout << dec;
+	sq_test();
 }
