@@ -22,8 +22,6 @@ private:
 	}();
 	const filesystem::path
 		main_path = L"C:/Users/" + username + L"/Documents/SpacePhysicsSimulator";
-	unique_ptr<C_Base>
-		running;
 	uint_fast64_t
 		main_choice = 0;
 	unique_ptr<C_Settings>

@@ -21,9 +21,6 @@
     <ClInclude Include="C_main.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
-    <ClInclude Include="C_Base.h">
-      <Filter>Pliki nagłówkowe</Filter>
-    </ClInclude>
     <ClInclude Include="C_Test.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
@@ -43,9 +40,6 @@
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
     <ClInclude Include="C_Universe.h">
-      <Filter>Pliki nagłówkowe</Filter>
-    </ClInclude>
-    <ClInclude Include="C_AVX_Vector.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
     <ClInclude Include="C_Sim_Basic_Data.h">
@@ -68,9 +62,6 @@
     <ClCompile Include="CPU_data.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
-    <ClCompile Include="C_Object.cpp">
-      <Filter>Pliki źródłowe</Filter>
-    </ClCompile>
     <ClCompile Include="C_Universe.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
@@ -79,9 +70,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="C_Vector.h">
-      <Filter>Pliki nagłówkowe</Filter>
-    </CudaCompile>
     <CudaCompile Include="constants.h">
       <Filter>Pliki nagłówkowe</Filter>
     </CudaCompile>

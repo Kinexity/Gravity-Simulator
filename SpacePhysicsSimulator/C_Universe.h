@@ -27,7 +27,6 @@ namespace Windows {
 #endif // _WIN32
 #include "C_Settings.h"
 #include "PureCPPLib/C_thread_set.h"
-#include "C_Base.h"
 #include "C_Object.h"
 #include "PureCPPLib/C_Event_Log.h"
 #include "PureCPPLib/C_Indexer.h"
@@ -39,9 +38,10 @@ namespace Windows {
 
 class C_Settings;
 
-inline constexpr auto dimensions = 3;
+inline constexpr size_t dimensions = 3;
+inline constexpr size_t simd_width = 4;
 
-class C_Universe : public C_Base {
+class C_Universe {
 private:
 	uint_fast64_t
 		sim_ord = 0,
@@ -53,23 +53,23 @@ private:
 		mod_choice = 0;
 	C_Sim_Basic_Data
 		sim_basic_data;
-	fstream
+	std::fstream
 		backup_file;
-	mutex
+	std::mutex
 		mut_ex;
 	const std::filesystem::path
 		recording_path = filesystem::current_path() / L"simulations";
-	unique_ptr<PCL::C_Barrier>
+	std::unique_ptr<PCL::C_Barrier>
 		barrier;
-	std::vector<C_Object>
+	std::vector<C_Object<dimensions>>
 		obj_arr;
-	unique_ptr<C_Settings>&
+	std::unique_ptr<C_Settings>&
 		settings_obj;
 	PCL::C_Event_Log&
 		event_log_obj; 
-	unique_ptr<PCL::C_Event_Log_Buffer>
+	std::unique_ptr<PCL::C_Event_Log_Buffer>
 		event_log_buffer;
-	unique_ptr<PCL::C_Indexer<>>
+	std::unique_ptr<PCL::C_Indexer<>>
 		indexer;
 	PCL::C_Time_Counter
 		time_counter;
@@ -79,14 +79,14 @@ private:
 		include_analysis = false;
 	std::once_flag
 		sync_flags[15];
-	std::atomic<double>
+	double
 		E_c_0 = 0,
 		E_c_k = 0;
 public:
 	C_Universe(unique_ptr<C_Settings>& set_obj, PCL::C_Event_Log& ev_log_obj);
 	~C_Universe() = default;
 	void
-		run() override;
+		run();
 	inline void
 		data_read(),
 		data_write(),
@@ -96,8 +96,7 @@ public:
 		data_change(),
 		data_log(),
 		simulation_directory_create(),
-		simulation_packed_thread(), 
-		simulation_packed(),
+		simulation_packed_thread(),
 		simulation_preperator(),
 		action_choice(),
 		result_recording();

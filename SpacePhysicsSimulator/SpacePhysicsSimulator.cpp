@@ -7,7 +7,7 @@ int_fast32_t main() {
 		do {} while (C_Main().run());
 	}
 	catch (std::exception t) {
-		cout << t.what() << endl;
+		std::cout << t.what() << '\n';
 		system("pause");
 		throw;
 	}

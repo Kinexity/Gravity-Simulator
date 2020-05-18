@@ -7,7 +7,6 @@
 #include <utility>
 #include <functional>
 #include <limits>
-#include "C_Vector.h"
 #include "PureCPPLib/io.h"
 #include "PureCPPLib/C_Event_Log.h"
 #include "C_Universe.h"

@@ -26,7 +26,6 @@
 #include <map>
 #include <functional>
 #include "C_RV_Recorder.h"
-#include "C_Base.h"
 #include "PureCPPLib/C_Barrier.h"
 #include "PureCPPLib/C_Indexer.h"
 #include "PureCPPLib/bitset_.h"
@@ -71,8 +70,7 @@ inline std::tuple < Tp...> operator+=(std::tuple < Tp...>& t1, const std::tuple 
 	return t1;
 }
 
-class C_Test :
-	public C_Base {
+class C_Test {
 public:
 	PCL::C_Event_Log_Base&
 		event_log;

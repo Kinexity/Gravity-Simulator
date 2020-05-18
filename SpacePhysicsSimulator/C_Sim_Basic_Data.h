@@ -10,7 +10,7 @@ struct S_Sim_Basic_Data {
 	size_t
 		num_of_objects = 0, //DO NOT CHANGE ORDER - 1
 		sim_duration = 0, //DO NOT CHANGE ORDER - 2
-		power2_cycles_per_second = 0; //DO NOT CHANGE ORDER - 3
+		cycles_per_second_exponent = 0; //DO NOT CHANGE ORDER - 3
 };
 
 class C_Sim_Basic_Data {
@@ -28,7 +28,7 @@ public:
 	bool
 		operator!=(C_Sim_Basic_Data obj_to_compare);
 	static S_Sim_Basic_Data
-		create_sbd(uint_fast64_t power2_cycles_per_second, uint_fast64_t num_of_objects, uint_fast64_t sim_duration);
+		create_sbd(uint_fast64_t cycles_per_second_exponent, uint_fast64_t num_of_objects, uint_fast64_t sim_duration);
 };
 
 #endif // !csdb

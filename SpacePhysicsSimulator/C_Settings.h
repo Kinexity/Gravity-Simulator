@@ -5,7 +5,6 @@
 #include <filesystem>
 #include <string>
 #include <sstream>
-#include "C_Base.h"
 #include "PureCPPLib/C_Event_Log.h"
 #include "C_Sim_Basic_Data.h"
 #include "constants.h"
@@ -20,12 +19,13 @@ struct S_Settings_Storage {
 		ram_GiB_limit = 1;
 	bool
 		enable_gpu_acceleration = bool(),
-		full_cuda_acceleration = bool();
+		full_cuda_acceleration = bool(),
+		calculate_energy_error = bool();
 	C_Sim_Basic_Data
 		test_sim_basic_data = C_Sim_Basic_Data(C_Sim_Basic_Data::create_sbd(0, 4, 32));
 };
 
-class C_Settings : public C_Base {
+class C_Settings {
 private:
 	mutex
 		synchronizer;
@@ -56,7 +56,7 @@ public:
 template<typename Type, typename Func>
 inline void C_Settings::get_new_value(Type & variable, Func error_condition) {
 	do {
-		cout << "Wartosc: ";
+		std::cout << "Wartosc: ";
 		cin >> variable;
 	} while (input_error() || incorrect_value(error_condition()));
 }

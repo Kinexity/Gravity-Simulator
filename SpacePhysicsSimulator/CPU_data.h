@@ -7,29 +7,29 @@
 #include <intrin.h> 
 using namespace std;
 
-	class InstructionSet_internal {
-	public:
-		InstructionSet_internal();
-		int_fast32_t 
-			nIds_,
-			nExIds_;
-		string 
-			vendor_,
-			brand_;
-		bool 
-			isintel_,
-			isAMD_;
-		bitset<32> 
-			f_1_ECX_,
-			f_1_EDX_,
-			f_7_EBX_,
-			f_7_ECX_,
-			f_81_ECX_,
-			f_81_EDX_;
-		vector<array<int_fast32_t, 4>> 
-			data_,
-			extdata_;
-	};
+class InstructionSet_internal {
+public:
+	InstructionSet_internal();
+	int_fast32_t
+		nIds_,
+		nExIds_;
+	string
+		vendor_,
+		brand_;
+	bool
+		isintel_,
+		isAMD_;
+	bitset<32>
+		f_1_ECX_,
+		f_1_EDX_,
+		f_7_EBX_,
+		f_7_ECX_,
+		f_81_ECX_,
+		f_81_EDX_;
+	vector<array<int_fast32_t, 4>>
+		data_,
+		extdata_;
+};
 
 class InstructionSet {
 public:

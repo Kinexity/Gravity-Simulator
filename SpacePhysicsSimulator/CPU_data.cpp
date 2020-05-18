@@ -139,7 +139,7 @@ string main_CPU() {
 
 void additional_CPU_info() {
 	auto support_message = [](string isa_feature, bool is_supported) {
-		cout << isa_feature << (is_supported ? " supported" : " not supported") << endl;
+		std::cout << isa_feature << (is_supported ? " supported" : " not supported") << '\n';
 	};
 	support_message("3DNOW", InstructionSet::_3DNOW());
 	support_message("3DNOWEXT", InstructionSet::_3DNOWEXT());

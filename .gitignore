@@ -345,3 +345,7 @@ healthchecksdb
 /CodeGraphData/Result_solution/xml
 /CodeGraphData
 *.rar
+/SpacePhysicsSimulator/VTune Profiler Results/SpacePhysicsSimulator
+*.3
+*.2
+*.4
