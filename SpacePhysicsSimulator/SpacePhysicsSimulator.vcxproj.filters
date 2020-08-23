@@ -39,9 +39,6 @@
     <ClInclude Include="C_Object.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
-    <ClInclude Include="C_Universe.h">
-      <Filter>Pliki nagłówkowe</Filter>
-    </ClInclude>
     <ClInclude Include="C_Sim_Basic_Data.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
@@ -73,5 +70,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>
