@@ -9,12 +9,9 @@
 #include <limits>
 #include "PureCPPLib/io.h"
 #include "PureCPPLib/C_Event_Log.h"
-#include "C_Universe.h"
-#include "C_Sim_Basic_Data.h"
-using namespace std;
 #undef max
 /*
-void check_for_cuda_error(cudaError_t state, PCL::C_Event_Log& ev_log_obj, int_fast32_t line_number, string file);
+void check_for_cuda_error(cudaError_t state, PCL::C_Event_Log& ev_log_obj, int_fast32_t line_number, std::string file);
 
 #define CHECK_FOR_CUDA_ERROR(fn) check_for_cuda_error(fn, event_log_obj, __LINE__, __FILE__)
 

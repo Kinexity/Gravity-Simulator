@@ -10,13 +10,11 @@
 #include <cstdint>
 #include <array>
 #include <PureCPPLib/C_Random.h>
-#include "C_Universe.h"
+#undef max
 
 template <size_t dims>
 class C_Object {
 private:
-	//C_Universe&
-		//parent_universe;
 	std::array<double, dims>
 		position,
 		velocity;
@@ -27,7 +25,6 @@ private:
 public:
 	uint_fast64_t
 		object_id = 0;
-	//C_Object(C_Universe& universe_ref);
 	C_Object() = default;
 	C_Object(C_Object<dims>& obj);
 	C_Object(C_Object<dims>&&) = default;
@@ -43,6 +40,7 @@ public:
 	double
 		operator()(C_Object<dims>& obj_2),
 		velocity_val();
+	template <size_t dimensions>
 	friend class
 		C_Universe;
 	friend class
@@ -53,7 +51,7 @@ public:
 
 template <size_t dims>
 inline void C_Object<dims>::calculate_sgp() {
-	standard_grav_param = mass * 6.67408313131313131313e-11;
+	standard_grav_param = mass * 6.67430151515151515151515e-11;
 }
 
 template <size_t dims>
@@ -63,7 +61,7 @@ inline double C_Object<dims>::operator()(C_Object<dims>& obj_2) {
 
 template <size_t dims>
 inline double C_Object<dims>::velocity_val() {
-	return std::sqrt(std::transform_reduce(std::execution::seq, velocity.begin(), velocity.end(),  0.0, std::plus<>(), [&](auto p1) {return std::pow(p1, 2); }));
+	return std::sqrt(std::transform_reduce(std::execution::seq, velocity.begin(), velocity.end(), 0.0, std::plus<>(), [&](auto p1) {return std::pow(p1, 2); }));
 }
 
 template <size_t dims>
@@ -83,7 +81,7 @@ inline void C_Object<dims>::data_rand(uint_fast64_t noo) {
 }
 
 //template <size_t dims>
-//C_Object<dims>::C_Object(C_Universe& universe_ref) : 
+//C_Object<dims>::C_Object(C_Universe& universe_ref) :
 //parent_universe(universe_ref) {}
 
 template <size_t dims>
@@ -107,8 +105,8 @@ inline void C_Object<dims>::reset() {
 }
 
 template <size_t dims>
-inline ostream& operator<<(ostream& output_stream, C_Object<dims>& obj) {
-	output_stream << line << '\n'
+inline std::ostream& operator<<(std::ostream& output_stream, C_Object<dims>& obj) {
+	output_stream << line
 		<< "	Dane dla obiektu numer " << obj.object_id << '\n'
 		<< "		Masa" << '\n'
 		<< "			M = " << obj.mass << '\n'
@@ -126,12 +124,12 @@ inline ostream& operator<<(ostream& output_stream, C_Object<dims>& obj) {
 }
 
 template <size_t dims>
-inline istream& operator>>(istream& input_stream, C_Object<dims>& obj) {
+inline std::istream& operator>>(std::istream& input_stream, C_Object<dims>& obj) {
 	std::pair<double, int_fast32_t>
 		fp_number = { double(),int_fast32_t() };
 	auto
 		to_double = [](std::pair<double, int_fast32_t> p)->double { return get<double>(p) * std::pow(10, get<int_fast32_t>(p)); };
-	std::cout << line << '\n';
+	std::cout << line;
 	std::cout << "Wprowadz parametry obiektu numer " << obj.object_id << "." << '\n';
 	do {
 		std::cout << "Podaj mase obiektu (kg): ";

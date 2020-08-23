@@ -8,7 +8,6 @@
 #include "PureCPPLib/C_Event_Log.h"
 #include "C_Sim_Basic_Data.h"
 #include "constants.h"
-using namespace std;
 #undef max
 
 struct S_Settings_Storage {
@@ -27,9 +26,9 @@ struct S_Settings_Storage {
 
 class C_Settings {
 private:
-	mutex
+	std::mutex
 		synchronizer;
-	fstream
+	std::fstream
 		settings_file;
 	uint_fast64_t
 		setting_choice = 0;
@@ -37,7 +36,7 @@ private:
 		settings,
 		settings_copy;
 	PCL::C_Event_Log
-		&event_log_obj;
+		& event_log_obj;
 	void
 		read_settings(),
 		update_settings(),
@@ -54,10 +53,10 @@ public:
 };
 
 template<typename Type, typename Func>
-inline void C_Settings::get_new_value(Type & variable, Func error_condition) {
+inline void C_Settings::get_new_value(Type& variable, Func error_condition) {
 	do {
 		std::cout << "Wartosc: ";
-		cin >> variable;
+		std::cin >> variable;
 	} while (input_error() || incorrect_value(error_condition()));
 }
 

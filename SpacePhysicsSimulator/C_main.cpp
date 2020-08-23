@@ -2,7 +2,7 @@
 
 C_Main::C_Main() {
 	t_counter.start();
-	std::cout << line << '\n' << "Space Physics Simulator - compiled: " << __DATE__ << " " << __TIME__ << '\n';
+	std::cout << line << "Space Physics Simulator - compiled: " << __DATE__ << " " << __TIME__ << '\n';
 	event_log_obj() << "Program's initialization..." << _endl_;
 	path_create();
 	event_log_obj.create_log_file();
@@ -19,12 +19,12 @@ C_Main::~C_Main() {
 
 bool C_Main::run() {
 	t_counter.stop();
-	event_log_obj() << "Initialization time: " + to_string(t_counter.measured_timespan().count()) << _endl_;
+	event_log_obj() << "Initialization time: " + std::to_string(t_counter.measured_timespan().count()) << _endl_;
 	do {
-		std::cout << line << '\n';
+		std::cout << line;
 		std::cout << "Menu Glowne" << '\n';
 		do {
-			std::cout << line << '\n'
+			std::cout << line
 				<< "0 - Zamknij program" << '\n'
 				<< "1 - Symulacja" << '\n'
 				<< "2 - Odczytywanie danych z analizy" << '\n'
@@ -32,7 +32,7 @@ bool C_Main::run() {
 				<< "4 - Obszar testowy" << '\n'
 				<< "5 - Zresetuj program" << '\n'
 				<< "Twoj wybor: ";
-			cin >> main_choice;
+			std::cin >> main_choice;
 		} while (input_error() || incorrect_value(main_choice > 5));
 		event_log_obj() << "main_choice = " << main_choice << _endl_;
 		switch (main_choice) {
@@ -40,7 +40,7 @@ bool C_Main::run() {
 			return false;
 		case 1:
 		{
-			C_Universe(settings_obj, event_log_obj).run();
+			C_Universe<3>(settings_obj, event_log_obj).run();
 			break;
 		}
 		case 2:
@@ -64,18 +64,18 @@ bool C_Main::run() {
 }
 
 inline void C_Main::path_create() {
-	if (!filesystem::exists(main_path)) {
-		filesystem::create_directory(main_path);
-		event_log_obj() << "Creating program's main path" << operation_evaluation<true>(filesystem::exists(main_path)) << _endl_;
+	if (!std::filesystem::exists(main_path)) {
+		std::filesystem::create_directory(main_path);
+		event_log_obj() << "Creating program's main path" << operation_evaluation<true>(std::filesystem::exists(main_path)) << _endl_;
 	}
-	filesystem::current_path(main_path);
-	event_log_obj() << "Setting current directory" << operation_evaluation<true>(filesystem::current_path() == main_path) << _endl_;
-	if (!filesystem::exists(main_path / L"simulations")) {
-		filesystem::create_directory(main_path / L"simulations");
-		event_log_obj() << "Creating program's simulation recording path" << operation_evaluation<true>(filesystem::exists(main_path / L"simulations")) << _endl_;
+	std::filesystem::current_path(main_path);
+	event_log_obj() << "Setting current directory" << operation_evaluation<true>(std::filesystem::current_path() == main_path) << _endl_;
+	if (!std::filesystem::exists(main_path / L"simulations")) {
+		std::filesystem::create_directory(main_path / L"simulations");
+		event_log_obj() << "Creating program's simulation recording path" << operation_evaluation<true>(std::filesystem::exists(main_path / L"simulations")) << _endl_;
 	}
-	if (!filesystem::exists(main_path / L"logs")) {
-		filesystem::create_directory(main_path / L"logs");
-		event_log_obj() << "Creating program's event log path" << operation_evaluation<true>(filesystem::exists(main_path / L"logs")) << _endl_;;
+	if (!std::filesystem::exists(main_path / L"logs")) {
+		std::filesystem::create_directory(main_path / L"logs");
+		event_log_obj() << "Creating program's event log path" << operation_evaluation<true>(std::filesystem::exists(main_path / L"logs")) << _endl_;;
 	}
 }

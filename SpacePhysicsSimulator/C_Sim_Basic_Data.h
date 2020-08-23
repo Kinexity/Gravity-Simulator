@@ -3,8 +3,7 @@
 #define csbd
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
-using namespace std;
+#include <string>
 
 struct S_Sim_Basic_Data {
 	size_t

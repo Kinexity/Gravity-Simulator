@@ -6,20 +6,22 @@
 #include <functional>
 
 template <typename Ret_Type, typename... Func_Args>
-class C_RV_Storage {
+class return_value_storing_wrapper {
 private:
 	std::map<std::tuple<Func_Args...>, Ret_Type> ret_val_map;
 	std::function<Ret_Type(Func_Args...)> func_ptr;
 public:
-	C_RV_Storage(std::function<Ret_Type(Func_Args...)>& f_ptr) : func_ptr(f_ptr) {};
-	C_RV_Storage() = default;
-	~C_RV_Storage() = default;
+	return_value_storing_wrapper(std::function<Ret_Type(Func_Args...)>& f_ptr) : func_ptr(f_ptr) {};
+	return_value_storing_wrapper() = default;
+	~return_value_storing_wrapper() = default;
 	decltype(func_ptr)& operator=(std::function < Ret_Type(Func_Args...)> f_ptr) {
+		ret_val_map.clear();
 		return (func_ptr = f_ptr);
 	}
 	Ret_Type operator()(Func_Args... args) {
-		const auto it = ret_val_map.find({ args... });
-		return (it != ret_val_map.end() ? it->second : (ret_val_map[{ args... }] = func_ptr(args...)));
+		auto packed = std::make_tuple(args...);
+		const auto it = ret_val_map.find(packed);
+		return (it != ret_val_map.end() ? it->second : (ret_val_map[packed] = func_ptr(args...)));
 	};
 };
 

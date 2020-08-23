@@ -2,8 +2,8 @@
 
 InstructionSet_internal InstructionSet::CPU_Rep;
 
-string InstructionSet::Vendor() { return InstructionSet::CPU_Rep.vendor_; }
-string InstructionSet::Brand() { return InstructionSet::CPU_Rep.brand_; }
+std::string InstructionSet::Vendor() { return InstructionSet::CPU_Rep.vendor_; }
+std::string InstructionSet::Brand() { return InstructionSet::CPU_Rep.brand_; }
 
 bool InstructionSet::InstructionSet::SSE3() { return InstructionSet::CPU_Rep.f_1_ECX_[0]; }
 bool InstructionSet::InstructionSet::PCLMULQDQ() { return InstructionSet::CPU_Rep.f_1_ECX_[1]; }
@@ -76,17 +76,17 @@ InstructionSet_internal::InstructionSet_internal()
 	f_81_EDX_(0),
 	data_(),
 	extdata_() {
-	//int_fast32_t cpuInfo[4] = {-1};  
-	array<int_fast32_t, 4> cpui;
-	// Calling __cpuid with 0x0 as the function_id argument  
-	// gets the number of the highest valid function ID.  
+	//int_fast32_t cpuInfo[4] = {-1};
+	std::array<int_fast32_t, 4> cpui;
+	// Calling __cpuid with 0x0 as the function_id argument
+	// gets the number of the highest valid function ID.
 	__cpuid(cpui.data(), 0);
 	nIds_ = cpui[0];
 	for (int_fast32_t i = 0; i <= nIds_; ++i) {
 		__cpuidex(cpui.data(), i, 0);
 		data_.push_back(cpui);
 	}
-	// Capture vendor string  
+	// Capture vendor std::string
 	char vendor[0x20];
 	memset(vendor, 0, sizeof(vendor));
 	*reinterpret_cast<int_fast32_t*>(vendor) = data_[0][1];
@@ -99,18 +99,18 @@ InstructionSet_internal::InstructionSet_internal()
 	else if (vendor_ == "AuthenticAMD") {
 		isAMD_ = true;
 	}
-	// load bitset with flags for function 0x00000001  
+	// load bitset with flags for function 0x00000001
 	if (nIds_ >= 1) {
 		f_1_ECX_ = data_[1][2];
 		f_1_EDX_ = data_[1][3];
 	}
-	// load bitset with flags for function 0x00000007  
+	// load bitset with flags for function 0x00000007
 	if (nIds_ >= 7) {
 		f_7_EBX_ = data_[7][1];
 		f_7_ECX_ = data_[7][2];
 	}
-	// Calling __cpuid with 0x80000000 as the function_id argument  
-	// gets the number of the highest valid extended ID.  
+	// Calling __cpuid with 0x80000000 as the function_id argument
+	// gets the number of the highest valid extended ID.
 	__cpuid(cpui.data(), 0x80000000);
 	nExIds_ = cpui[0];
 	char brand[0x40];
@@ -119,12 +119,12 @@ InstructionSet_internal::InstructionSet_internal()
 		__cpuidex(cpui.data(), i, 0);
 		extdata_.push_back(cpui);
 	}
-	// load bitset with flags for function 0x80000001  
+	// load bitset with flags for function 0x80000001
 	if (nExIds_ >= 0x80000001) {
 		f_81_ECX_ = extdata_[1][2];
 		f_81_EDX_ = extdata_[1][3];
 	}
-	// int_fast32_terpret CPU brand string if reported  
+	// int_fast32_terpret CPU brand std::string if reported
 	if (nExIds_ >= 0x80000004) {
 		memcpy(brand, extdata_[2].data(), sizeof(cpui));
 		memcpy(brand + 16, extdata_[3].data(), sizeof(cpui));
@@ -133,12 +133,12 @@ InstructionSet_internal::InstructionSet_internal()
 	}
 }
 
-string main_CPU() {
+std::string main_CPU() {
 	return InstructionSet::Vendor() + " " + InstructionSet::Brand();
 }
 
 void additional_CPU_info() {
-	auto support_message = [](string isa_feature, bool is_supported) {
+	auto support_message = [](std::string isa_feature, bool is_supported) {
 		std::cout << isa_feature << (is_supported ? " supported" : " not supported") << '\n';
 	};
 	support_message("3DNOW", InstructionSet::_3DNOW());

@@ -1,11 +1,10 @@
 #pragma once
-#include <iostream>  
-#include <vector>  
-#include <bitset>  
-#include <array>  
-#include <string>  
-#include <intrin.h> 
-using namespace std;
+#include <iostream>
+#include <vector>
+#include <bitset>
+#include <array>
+#include <string>
+#include <intrin.h>
 
 class InstructionSet_internal {
 public:
@@ -13,27 +12,27 @@ public:
 	int_fast32_t
 		nIds_,
 		nExIds_;
-	string
+	std::string
 		vendor_,
 		brand_;
 	bool
 		isintel_,
 		isAMD_;
-	bitset<32>
+	std::bitset<32>
 		f_1_ECX_,
 		f_1_EDX_,
 		f_7_EBX_,
 		f_7_ECX_,
 		f_81_ECX_,
 		f_81_EDX_;
-	vector<array<int_fast32_t, 4>>
+	std::vector<std::array<int_fast32_t, 4>>
 		data_,
 		extdata_;
 };
 
 class InstructionSet {
 public:
-	static string
+	static std::string
 		Vendor(),
 		Brand();
 	static bool
@@ -92,6 +91,6 @@ public:
 	static InstructionSet_internal CPU_Rep;
 };
 
-string main_CPU();
+std::string main_CPU();
 
 void additional_CPU_info();

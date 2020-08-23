@@ -22,32 +22,16 @@
 #include <conio.h>
 #include <atomic>
 #include <intrin.h>
-#include <immintrin.h>
 #include <map>
 #include <functional>
+#include <ranges>
 #include "C_RV_Recorder.h"
-#include "PureCPPLib/C_Barrier.h"
 #include "PureCPPLib/C_Indexer.h"
-#include "PureCPPLib/bitset_.h"
+#include "PureCPPLib/bit_vector.h"
 #include "PureCPPLib/C_Time_Counter.h"
 #include "PureCPPLib/C_Random.h"
 #include "PureCPPLib/C_XML.h"
 #include "constants.h"
-#include "PureCPPLib/adv_math.h"
-using namespace std;
-
-template < typename CurrentType, typename...Types >
-struct _nested_maps {
-	typedef std::map < CurrentType, typename _nested_maps < Types...>::type > type;
-};
-
-template < typename CurrentType >
-struct _nested_maps < CurrentType > {
-	typedef CurrentType type;
-};
-
-template < typename...Args >
-using nested_maps = typename _nested_maps < Args...>::type;
 
 template < std::size_t I = 0, typename...Tp >
 inline void sumTuples(const std::tuple < Tp...>& t1, const std::tuple < Tp...>& t2, std::tuple < Tp...>& _result) noexcept {
