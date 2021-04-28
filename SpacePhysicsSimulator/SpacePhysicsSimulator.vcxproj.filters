@@ -27,9 +27,6 @@
     <ClInclude Include="C_Settings.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
-    <ClInclude Include="CPU_data.h">
-      <Filter>Pliki nagłówkowe</Filter>
-    </ClInclude>
     <ClInclude Include="C_RV_Recorder.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
@@ -40,6 +37,9 @@
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
     <ClInclude Include="C_Sim_Basic_Data.h">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
+    <ClInclude Include="C_Universe.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
   </ItemGroup>
@@ -56,9 +56,6 @@
     <ClCompile Include="C_Settings.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
-    <ClCompile Include="CPU_data.cpp">
-      <Filter>Pliki źródłowe</Filter>
-    </ClCompile>
     <ClCompile Include="C_Sim_Basic_Data.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
@@ -67,9 +64,5 @@
     <CudaCompile Include="constants.h">
       <Filter>Pliki nagłówkowe</Filter>
     </CudaCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>

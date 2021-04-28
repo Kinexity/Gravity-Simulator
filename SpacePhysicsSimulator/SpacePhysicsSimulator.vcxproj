@@ -105,6 +105,8 @@
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
     <EnableExperimentalCppCoreCheck>true</EnableExperimentalCppCoreCheck>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <IncludePath>C:\Program Files\matplotplusplus 1.0.1\include;$(MKLIncludeDir);$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\matplotplusplus 1.0.1\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -158,7 +160,7 @@
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <StringPooling>true</StringPooling>
-      <EnableModules>false</EnableModules>
+      <EnableModules>true</EnableModules>
       <TreatSpecificWarningsAsErrors>
       </TreatSpecificWarningsAsErrors>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -168,9 +170,9 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <ExceptionHandling>Sync</ExceptionHandling>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <FloatingPointModel>Fast</FloatingPointModel>
+      <FloatingPointModel>Strict</FloatingPointModel>
       <FloatingPointExceptions>false</FloatingPointExceptions>
-      <AdditionalIncludeDirectories>C:\Users\26kuba05\source\repos\PureCPPLib;D:\Download\vcpkg\packages\python3_x64-windows\include\python3.7;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\26kuba05\source\repos\PureCPPLib;C:\Users\26kuba05\source\repos\SpacePhysicsSimulator\ParticleEngine;C:\Program Files\matplotplusplus 1.0.1\include;D:\Download\vcpkg\packages\python3_x64-windows\include\python3.7;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <OptimizeForWindowsApplication>true</OptimizeForWindowsApplication>
       <EnableMatrixMultiplyLibraryCall>Yes</EnableMatrixMultiplyLibraryCall>
@@ -184,14 +186,16 @@
       <CheckPointers>MpxRw</CheckPointers>
       <CheckDanglingPointers>All</CheckDanglingPointers>
       <UseMSVC>false</UseMSVC>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;matplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <ShowProgress>LinkVerbose</ShowProgress>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files\matplotplusplus 1.0.1\lib\Matplot++;%(AdditionalLibraryDirectories);C:\Program Files\matplotplusplus 1.0.1\lib</AdditionalLibraryDirectories>
+      <LinkStatus>true</LinkStatus>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -222,8 +226,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="constants.h" />
-    <ClInclude Include="CPU_data.h" />
     <ClInclude Include="C_Sim_Basic_Data.h" />
+    <ClInclude Include="C_Universe.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="C_main.h" />
     <ClInclude Include="C_Object.h" />
@@ -235,7 +239,6 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CPU_data.cpp" />
     <ClCompile Include="C_main.cpp" />
     <ClCompile Include="C_Settings.cpp" />
     <ClCompile Include="C_Sim_Basic_Data.cpp">
@@ -248,19 +251,10 @@
     <ProjectReference Include="..\..\PureCPPLib\PureCPPLib\PureCPPLib.vcxproj">
       <Project>{6e4f9b98-7f77-4fa6-a153-b7e64489cbed}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
-    <None Include="packages.config" />
+    <ProjectReference Include="..\ParticleEngine\ParticleEngine.vcxproj">
+      <Project>{db95104c-4d07-425d-a36f-40527550cac2}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\matplotlib-cpp.1.1.0.92\build\native\matplotlib-cpp.targets" Condition="Exists('..\packages\matplotlib-cpp.1.1.0.92\build\native\matplotlib-cpp.targets')" />
-  </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>Ten projekt zawiera odwołania do pakietów NuGet, których nie ma na tym komputerze. Użyj przywracania pakietów NuGet, aby je pobrać. Aby uzyskać więcej informacji, zobacz http://go.microsoft.com/fwlink/?LinkID=322105. Brakujący plik: {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\matplotlib-cpp.1.1.0.92\build\native\matplotlib-cpp.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\matplotlib-cpp.1.1.0.92\build\native\matplotlib-cpp.targets'))" />
-  </Target>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

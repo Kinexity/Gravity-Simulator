@@ -26,7 +26,6 @@ public:
 	uint_fast64_t
 		object_id = 0;
 	C_Object() = default;
-	C_Object(C_Object<dims>& obj);
 	C_Object(C_Object<dims>&&) = default;
 	C_Object<dims>& operator=(const C_Object<dims>&) = default;
 	~C_Object() = default;
@@ -34,7 +33,6 @@ public:
 		operator!=(C_Object<dims>& obj),
 		operator==(C_Object<dims>& obj);
 	void
-		reset(),
 		data_rand(uint_fast64_t noo),
 		calculate_sgp();
 	double
@@ -85,11 +83,6 @@ inline void C_Object<dims>::data_rand(uint_fast64_t noo) {
 //parent_universe(universe_ref) {}
 
 template <size_t dims>
-inline C_Object<dims>::C_Object(C_Object<dims>& obj) {
-	memcpy(&position, &obj.position, ((int)&buffer - (int)&position));
-}
-
-template <size_t dims>
 inline bool C_Object<dims>::operator!=(C_Object<dims>& obj) {
 	return object_id != obj.object_id;
 }
@@ -97,11 +90,6 @@ inline bool C_Object<dims>::operator!=(C_Object<dims>& obj) {
 template <size_t dims>
 inline bool C_Object<dims>::operator==(C_Object<dims>& obj) {
 	return position == obj.position;
-}
-
-template <size_t dims>
-inline void C_Object<dims>::reset() {
-	buffer.reset();
 }
 
 template <size_t dims>

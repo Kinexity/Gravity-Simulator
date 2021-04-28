@@ -2,16 +2,36 @@
 #include <complex>
 #include <valarray>
 #include <type_traits>
+#include <numbers>
 #include "PureCPPLib/polynomial.h"
-#include "PureCPPLib/bit_vector.h"
 #include "PureCPPLib/sieve.h"
+#include "particle_container.h"
 #include <boost/multiprecision/cpp_bin_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/numeric/odeint.hpp>
 #include <boost/math/tools/roots.hpp>
-#include "matplotlibcpp.h"
-#include "gmpxx.h"
-namespace pt = matplotlibcpp;
+//#include <matplot/matplot.h>
+#undef max
+#undef min
+//#include <matplotlibcpp.h>
+//namespace pt = matplotlibcpp;
+
+static __m256d _mm256_abs_pd(__m256d a) {
+	const unsigned long long abs_mask = 0x7FFFFFFFFFFFFFFF;
+	const unsigned long long abs_full[8] =
+	{ abs_mask, abs_mask, abs_mask, abs_mask, abs_mask, abs_mask, abs_mask,
+	   abs_mask };
+	return _mm256_and_pd(_mm256_load_pd((double*)abs_full), a);
+}
+
+inline
+double _mm256_hreduce_pd(__m256d v) {
+	__m128d vlow = _mm256_castpd256_pd128(v);
+	__m128d vhigh = _mm256_extractf128_pd(v, 1); // high 128
+	vlow = _mm_add_pd(vlow, vhigh);     // reduce down to 128
+	__m128d high64 = _mm_unpackhi_pd(vlow, vlow);
+	return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64));  // reduce to scalar
+}
 
 template <typename T> int sgn(T val) {
 	return (T() < val) - (val < T());
@@ -60,9 +80,7 @@ double L_radius(const uint_fast64_t L_N, std::array<double, 2> mass, double dist
 		edges[2] = { double() };
 	constexpr double
 		gravitational_constant = 6.6740831313131313131e-11;
-	if (mass[1] > mass[0]) {
-		std::swap(mass[0], mass[1]);
-	}
+	std::sort(&mass[0], &mass[1]);
 	barycenter_orbit_radius[0] = distance * mass[1] / (mass[0] + mass[1]);
 	barycenter_orbit_radius[1] = distance * mass[0] / (mass[0] + mass[1]);
 	angular_velocity = sqrt(gravitational_constant * (mass[0] + mass[1]) / pow(distance, 3));
@@ -210,12 +228,12 @@ void solving_test() {
 
 template<typename T>
 T Lagrange_polynomial(const std::vector<double>& args, double arg, T x) {
-	return std::transform_reduce(std::execution::par, args.begin(), args.end(), static_cast<T>(1.0), std::multiplies<T>(), [&](double _a_) { return (_a_ != arg ? (x - _a_) / (arg - _a_) : static_cast<T>(1.0)); });
+	return std::transform_reduce(std::execution::par_unseq, args.begin(), args.end(), static_cast<T>(1.0), std::multiplies<T>(), [&](double _a_) { return (_a_ != arg ? (x - _a_) / (arg - _a_) : static_cast<T>(1.0)); });
 }
 
 template<typename T>
 T interpolate(const std::vector<double>& args, const std::vector<double>& vals, T x) {
-	return std::transform_reduce(std::execution::par, args.begin(), args.end(), vals.begin(), T(), std::plus<T>(), [&](double arg, double val) { return Lagrange_polynomial(args, arg, x) * val;  });
+	return std::transform_reduce(std::execution::par_unseq, args.begin(), args.end(), vals.begin(), T(), std::plus<T>(), [&](double arg, double val) { return Lagrange_polynomial(args, arg, x) * val;  });
 };
 
 using tp = float256;
@@ -256,17 +274,17 @@ void interpolation() {
 	auto fn = [&](auto x) {return std::asinh(x); };
 	const double eps = 1e-10;
 	auto deriv = [&](auto x) { return (fn(x + eps) - fn(x - eps)) / (2. * eps); };
-	std::generate(std::execution::par, args_interp.begin(), args_interp.end(), interp_arg_gen);
-	std::transform(std::execution::par, args_interp.begin(), args_interp.end(), vals_interp.begin(), fn);
+	std::generate(std::execution::par_unseq, args_interp.begin(), args_interp.end(), interp_arg_gen);
+	std::transform(std::execution::par_unseq, args_interp.begin(), args_interp.end(), vals_interp.begin(), fn);
 	double
-		hi = std::max(1.25 * *std::max_element(std::execution::par, vals_interp.begin(), vals_interp.end()), 1.),
-		lo = std::min(1.25 * *std::min_element(std::execution::par, vals_interp.begin(), vals_interp.end()), -1.);
+		hi = std::max(1.25 * *std::max_element(std::execution::par_unseq, vals_interp.begin(), vals_interp.end()), 1.),
+		lo = std::min(1.25 * *std::min_element(std::execution::par_unseq, vals_interp.begin(), vals_interp.end()), -1.);
 	interpolated_polynomial = interpolate(args_interp, vals_interp, polynomial<tp>({ (tp)0.,(tp)1. }));
 	std::cout << interpolated_polynomial << '\n';
-	std::generate(std::execution::par, draw_args.begin(), draw_args.end(), draw_arg_gen);
-	std::transform(std::execution::par, draw_args.begin(), draw_args.end(), vals_draw.begin(), fn);
-	std::transform(std::execution::par, draw_args.begin(), draw_args.end(), vals_interp_draw.begin(), [&](auto x) { return std::clamp(interpolate(args_interp, vals_interp, x), lo, hi); });
-	std::transform(std::execution::par, draw_args.begin(), draw_args.end(), vals_interp_poly_draw.begin(), [&](auto x) { return (double)std::clamp<tp>(interpolated_polynomial(tp(x)), lo, hi); });
+	std::generate(std::execution::par_unseq, draw_args.begin(), draw_args.end(), draw_arg_gen);
+	std::transform(std::execution::par_unseq, draw_args.begin(), draw_args.end(), vals_draw.begin(), fn);
+	std::transform(std::execution::par_unseq, draw_args.begin(), draw_args.end(), vals_interp_draw.begin(), [&](auto x) { return std::clamp(interpolate(args_interp, vals_interp, x), lo, hi); });
+	std::transform(std::execution::par_unseq, draw_args.begin(), draw_args.end(), vals_interp_poly_draw.begin(), [&](auto x) { return (double)std::clamp<tp>(interpolated_polynomial(tp(x)), lo, hi); });
 	//pt::plot(draw_args, vals_draw, "g-");
 	//pt::plot(draw_args, vals_interp_draw, "r-");
 	//pt::plot(draw_args, vals_interp_poly_draw, "b-");
@@ -355,7 +373,7 @@ void CVRR_test() {
 		std::tie(vecs[1][i], vecs[0][i]) = std::minmax(rnd() % gen_limit + offset, rnd() % gen_limit + offset);
 	});
 	std::function ref = binomial_coefficient;
-	return_value_storing_wrapper fn = ref;
+	return_value_wrapper fn = ref;
 	tc.start();
 	for (size_t i = 0; i < N; i++) {
 		res[i] = binomial_coefficient(vecs[0][i], vecs[1][i]);
@@ -370,12 +388,280 @@ void CVRR_test() {
 	std::cout << "Czas (CVRR): " << N / tc.measured_timespan().count() << "elem./s" << '\n';
 }
 
+void intrin_test() {
+	std::cout << line << __FUNCTION__ << '\n';
+	const size_t
+		N = 1e8;
+	std::array<std::vector<int_fast32_t>, 2> vecs;
+	std::vector<double> res;
+	res.resize(N);
+	for (auto& v : vecs) {
+		v.resize(N);
+		std::for_each(std::execution::par_unseq, v.begin(), v.end(), [&](auto& elem) {
+			elem = (rnd() % 100 + 1);// 2.;
+		});
+	}
+	//tc.start();
+	//for (auto i = 0; i < N; i += 4) {
+	//	auto tmp = _mm256_load_pd(&vecs[0][i]);
+	//	auto tmp2 = _mm256_load_pd(&vecs[1][i]);
+	//	_mm256_store_pd(&res[i], _mm256_add_pd(tmp, tmp2));
+	//}
+	//tc.stop();
+	//std::cout << "_mm256_add_pd: " << N / tc.measured_timespan().count() << "elem/s\n";
+	//tc.start();
+	//for (auto i = 0; i < N; i += 4) {
+	//	auto tmp = _mm256_load_pd(&vecs[0][i]);
+	//	auto tmp2 = _mm256_load_pd(&vecs[1][i]);
+	//	_mm256_store_pd(&res[i], _mm256_mul_pd(tmp, tmp2));
+	//}
+	//tc.stop();
+	//std::cout << "_mm256_mul_pd: " << N / tc.measured_timespan().count() << "elem/s\n";
+	//tc.start();
+	//for (auto i = 0; i < N; i += 4) {
+	//	auto tmp = _mm256_load_pd(&vecs[0][i]);
+	//	auto tmp2 = _mm256_load_pd(&vecs[1][i]);
+	//	_mm256_store_pd(&res[i], _mm256_div_pd(tmp, tmp2));
+	//}
+	//tc.stop();
+	//std::cout << "_mm256_div_pd: " << N / tc.measured_timespan().count() << "elem/s\n";
+	tc.start();
+	for (auto i = 0; i < N; i++) {
+		vecs[0][i] = vecs[1][i] * 2;
+	}
+	tc.stop();
+	std::cout << "pre: " << N / tc.measured_timespan().count() << "elem/s\n";
+	std::cout << "checksum: " << std::reduce(std::execution::par_unseq, vecs[0].begin(), vecs[0].end(), 0, std::plus<>()) << '\n';
+	tc.start();
+	for (auto i = 0; i < N; i += 8) {
+		_mm256_store_si256((__m256i*) & vecs[0][i], _mm256_mul_epi32(_mm256_load_si256((__m256i*) & vecs[1][i]), _mm256_set1_epi32(2)));
+	}
+	tc.stop();
+	std::cout << "post: " << N / tc.measured_timespan().count() << "elem/s\n";
+	std::cout << "checksum: " << std::reduce(std::execution::par_unseq, vecs[0].begin(), vecs[0].end(), 0, std::plus<>()) << '\n';
+}
+
+class particle_system {
+private:
+	double
+		C = 5.,
+		g = 10.;
+public:
+	particle_system(double C_arg = 5., double g_arg = 10.) : C(C_arg), g(g_arg) {};
+	void operator()(const state_type<2>& x, state_type<2>& dxdt, const double /* t */) {
+		dxdt = {
+			-g - x[0] * x[0] * C,
+			x[0]
+		};
+	}
+};
+
+void solution_test() {
+	std::vector<double>
+		h_result,
+		time_points;
+	auto height = [&](double t_k) {
+		state_type<2> x = { 10 , 10000. };
+		boost::numeric::odeint::integrate_adaptive(controlled_stepper_type<2>(), particle_system(), x, 0., t_k, t_k / 20);
+		return x[1];
+	};
+	auto res = boost::math::tools::bisect(height, 0., 10000., [&](double min, double max) {return max - min < 1e-3; });
+	auto time_bisect = std::midpoint(res.first, res.second);
+	const auto steps = 1001;
+	for (auto step = 0; step < steps; step++) {
+		auto t = time_bisect * step / (steps - 1);
+		time_points.push_back(t);
+		h_result.push_back(height(t));
+	}
+	std::cout << "Czasteczka uderzyla w ziemie po " << time_bisect << " s\n";
+	//matplot::plot(time_points, h_result, "r-");
+	//matplot::show();
+}
+
+void rename_files() {
+	std::vector<std::pair<std::wstring, std::wstring>> vec;
+	std::filesystem::path dir("D:\\YTBUP\\MxR Mods");
+	for (auto& file : std::filesystem::directory_iterator(dir)) {
+		auto old_fname = file.path().filename().wstring();
+		auto num_str = old_fname.substr(0, 4);
+		auto name_str = old_fname.substr(4);
+		int num = std::stoi(num_str) - 373;
+		auto new_fname = (std::wstringstream() << std::setw(4) << std::setfill(L'0') << num << L'.').str();
+		new_fname += name_str;
+		vec.push_back({ old_fname, new_fname });
+	}
+	for (auto& [old_fname, new_fname] : vec) {
+		std::filesystem::rename(dir / old_fname, dir / new_fname);
+	}
+}
+
+void filter_data() {
+	std::filesystem::path dir("C:\\Users\\26kuba05\\source\\NewFolder1");
+	for (auto& file : std::filesystem::directory_iterator(dir)) {
+		std::vector<std::string> lines;
+		auto path = file.path();
+		std::fstream file;
+		file.open(path, std::ios::in);
+		std::string line;
+		while (file >> line) {
+			lines.push_back(line);
+		}
+		file.close();
+		std::vector<std::string> new_lines{ lines.begin() + 2,lines.end() };
+		file.open(path, std::ios::out | std::ios::trunc);
+		for (auto& elem : new_lines) {
+			std::replace(elem.begin(), elem.end(), ',', ' ');
+			file << elem << '\n';
+		}
+		file.close();
+	}
+}
+
+class ChebyshevInterpolant {
+public:
+	// do not allow default constructor
+	ChebyshevInterpolant() = delete;
+	ChebyshevInterpolant(std::function<double(double)> f, std::pair<double, double> section, int degree);
+	double Evaluate(double x);
+private:
+	// section represent begining and end of section on which we interpolate
+	std::pair<double, double> section;
+	// maximal degree of polynomial
+	int degree;
+	// pointer to the function being interpolated
+	std::function<double(double)> f;
+	// list of c_k coefficients
+	std::vector<double> c;
+	polynomial<double> interpolation_polynomial;
+};
+
+ChebyshevInterpolant::ChebyshevInterpolant(std::function<double(double)> f, std::pair<double, double> section, int degree) {
+	double xj, xxj, val;
+	for (int i = 0; i <= degree; i++) {
+		double ci = 0.0;
+		for (int j = 0; j < degree; j++) {
+			xj = (std::numbers::pi * (j + 0.5)) / degree;
+			xxj = 0.5 * (section.first + section.second) + 0.5 * (section.second - section.first) * cos(xj);
+			val = f(xxj);
+			xxj = cos(i * xj);
+			ci = ci + val * xxj;
+		}
+		ci = (ci * 2.0) / degree;
+		c.push_back(ci);
+	}
+	polynomial<double>
+		T_n_1(1, 0),
+		T_n(1, 1);
+	interpolation_polynomial += c[1] * T_n + c[0] * T_n_1 - 0.5 * c[0];
+	for (auto& k : c) {
+		auto i = std::distance(&*c.begin(), &k);
+		std::cout << "c_" << i << "= " << k << std::endl;
+		if (i >= 2) {
+			T_n_1 = std::exchange(T_n, 2 * polynomial<double>(1, 1) * T_n - T_n_1);
+			interpolation_polynomial += T_n * c[i];
+		}
+	}
+}
+
+double ChebyshevInterpolant::Evaluate(double x) {
+	return interpolation_polynomial(x);
+};
+
+int czeb_test() {
+	double a = 0.5;
+	double b = 5.0;
+	auto p = std::make_pair(a, b);
+	int degree = 4;
+	ChebyshevInterpolant Inter1([&](double x) { return std::log(x); }, p, degree);
+	double x = 2.5;
+	double FunVal = Inter1.Evaluate(x);
+	std::cout << "Moja wartosc szacowana = ln(" << x << ") =" << FunVal << std::endl;
+	std::cout << "Porownanie z wartoscia z math.h = ln(" << x << ") = " << log(x) << std::endl;
+	std::vector<std::pair<double, double>> proba;
+	double odcinek_prob = (b - a) / 1000;
+	for (int i = 1; i <= 1000; i++) {
+		double xi = a + i * odcinek_prob;
+		double fxi = Inter1.Evaluate(xi);
+		auto p1 = std::make_pair(xi, fxi);
+		proba.push_back(p1);
+	}
+	double max_niep = 0.0;
+	for (int e = 1; e < proba.size(); e++) {
+		double x1 = proba.at(e).second - log(proba.at(e).first);
+		double x2 = proba.at(e - 1).second - log(proba.at(e - 1).first);
+		if (abs(x1) > abs(x2)) { max_niep = abs(x1); }
+		else { max_niep = abs(x2); }
+	}
+	std::cout << "maksimum bledu aproksymacji = " << max_niep << std::endl;
+	return 0;
+
+}
+
+double fun(int i) {
+	return 1 / (double)i / (double)i;
+}
+
+std::vector<double> Sum_series(std::function<double(int)> f, int i) {
+	std::vector<double> v(i), v1(i);
+	std::ranges::for_each(v1, [&](auto& x) { x = f(std::distance(&*v1.begin(), &x) + 1); });
+	std::partial_sum(v1.begin(), v1.end(), v.begin());
+	return v;
+}
+
+int silnia(int k) {
+	int sil = 1;
+	while (k > 1) {
+		sil = sil * k;
+		k--;
+	}
+	return sil;
+}
+
+double Rich_extrapolation(std::vector<double> v, int k) {
+	double R_k = 0.0;
+	int N = v.size() - k;
+	for (int i = 0; i < k; i++) {
+		R_k += pow((N + i), i) * pow(-1, (k + i)) * v.at(N + i - 1) / (silnia(i) * silnia(k - i));
+	}
+	return R_k;
+}
+
+int rich_test() {
+	double porownanie = std::pow(std::numbers::pi, 2) / 6;
+	int N = 1000;
+	std::vector<double> Sum_vec = Sum_series(fun, N);
+	double R1 = N * Sum_vec.at(N - 1) - (N - 1) * Sum_vec.at(N - 2);
+	double R2 = (N * N * Sum_vec.at(N - 1) - 2 * (N - 1) * (N - 1) * Sum_vec.at(N - 2) + (N - 2) * (N - 2) * Sum_vec.at(N - 3)) / 2;
+	std::cout << "(Na piechote) R1-pi^2/6 = " << R1 - porownanie << std::endl;
+	std::cout << "(Na piechote) R2-pi^2/6 = " << R2 - porownanie << std::endl;
+	std::cout << "R1-pi^2/6 = " << Rich_extrapolation(Sum_vec, 1) - porownanie << std::endl;
+	std::cout << "R2-pi^2/6 = " << Rich_extrapolation(Sum_vec, 2) - porownanie << std::endl;
+
+	return 0;
+}
+
+void sieve_test() {
+	std::cout << line;
+	std::cout << std::fixed;
+	for (auto i = 2; i < 12; i++) {
+		tc.start();
+		const auto&& res = PCL::sieve(std::pow(10, i));
+		tc.stop();
+		std::cout << i << '\t' << tc.measured_timespan().count() << " s \n";
+	}
+	std::cout << std::scientific;
+}
+
 void C_Test::run() {
-	const size_t N = 1e5;
 	//Lagrange_points();
 	//interpolation();
-	polynomial_speed_test();
+	//polynomial_speed_test();
+	//solution_test();
+	//intrin_test();
+	//additional_CPU_info();
 	//CVRR_test();
 	//zad3();
 	//solving_test();
+	//filter_data();
+	rich_test();
 }
