@@ -3,6 +3,7 @@
 #include <valarray>
 #include <type_traits>
 #include <numbers>
+#include <ranges>
 #include "PureCPPLib/polynomial.h"
 #include "PureCPPLib/sieve.h"
 #include "particle_container.h"
@@ -10,6 +11,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/numeric/odeint.hpp>
 #include <boost/math/tools/roots.hpp>
+#include "neural_network.h"
 //#include <matplot/matplot.h>
 #undef max
 #undef min
@@ -643,13 +645,52 @@ int rich_test() {
 void sieve_test() {
 	std::cout << line;
 	std::cout << std::fixed;
-	for (auto i = 2; i < 12; i++) {
+	unsigned int
+		i_start = 1,
+		i_stop = 1;
+	std::cin >> i_start >> i_stop;
+	for (auto i = i_start; i < i_stop; i++) {
 		tc.start();
 		const auto&& res = PCL::sieve(std::pow(10, i));
 		tc.stop();
 		std::cout << i << '\t' << tc.measured_timespan().count() << " s \n";
 	}
 	std::cout << std::scientific;
+}
+
+//void mp_test() {
+//	std::vector<double> vec(10);
+//	std::iota(vec.begin(), vec.end(), 0.);
+//	matplot::plot(vec, "g-");
+//	matplot::show();
+//}
+
+void nn_test() {
+	std::array<std::wstring, 4>
+		filenames = {L"train-images.idx3-ubyte",L"train-labels.idx1-ubyte",L"t10k-images.idx3-ubyte",L"t10k-labels.idx1-ubyte"};
+	std::ifstream 
+		images_file,
+		labels_file;
+	std::vector<std::pair<std::vector<double>, uint8_t>>
+		data;
+	std::vector<std::byte>
+		temp_raw_data(748);
+	std::vector<double>
+		temp_data(748);
+	uint8_t
+		temp_label;
+	neural_network nn({748,187,17,10});
+	std::filesystem::path nn_data_path = L"C:\\Users\\26kuba05\\source\\repos\\SpacePhysicsSimulator\\nn_data";
+	images_file.open(nn_data_path/filenames[0], std::ios::binary);
+	labels_file.open(nn_data_path/filenames[1], std::ios::binary);
+	do {
+		std::transform(std::execution::par_unseq, temp_raw_data.begin(), temp_raw_data.end(), temp_data.begin(), [&](std::byte& pixel) {
+			return double(pixel) / double(std::numeric_limits<std::byte>::max());
+		});
+		data.push_back({ temp_data, temp_label });
+	} while(!images_file.eof());
+	images_file.close();
+	labels_file.close();
 }
 
 void C_Test::run() {
@@ -663,5 +704,7 @@ void C_Test::run() {
 	//zad3();
 	//solving_test();
 	//filter_data();
-	rich_test();
+	//rich_test();
+	//mp_test();
+	nn_test();
 }

@@ -105,8 +105,8 @@
     <EnableCppCoreCheck>true</EnableCppCoreCheck>
     <EnableExperimentalCppCoreCheck>true</EnableExperimentalCppCoreCheck>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <IncludePath>C:\Program Files\matplotplusplus 1.0.1\include;$(MKLIncludeDir);$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files\matplotplusplus 1.0.1\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\26kuba05\source\repos\matplotplusplus\source;$(MKLIncludeDir);$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\26kuba05\source\repos\matplotplusplus\out\build\x64-Release\source\3rd_party;C:\Users\26kuba05\source\repos\matplotplusplus\out\build\x64-Release\source\matplot;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -172,7 +172,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <FloatingPointModel>Strict</FloatingPointModel>
       <FloatingPointExceptions>false</FloatingPointExceptions>
-      <AdditionalIncludeDirectories>C:\Users\26kuba05\source\repos\PureCPPLib;C:\Users\26kuba05\source\repos\SpacePhysicsSimulator\ParticleEngine;C:\Program Files\matplotplusplus 1.0.1\include;D:\Download\vcpkg\packages\python3_x64-windows\include\python3.7;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\26kuba05\source\repos\PureCPPLib;C:\Users\26kuba05\source\repos\SpacePhysicsSimulator\ParticleEngine;C:\Users\26kuba05\source\repos\matplotplusplus\source;D:\Download\vcpkg\packages\python3_x64-windows\include\python3.7;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <OptimizeForWindowsApplication>true</OptimizeForWindowsApplication>
       <EnableMatrixMultiplyLibraryCall>Yes</EnableMatrixMultiplyLibraryCall>
@@ -194,7 +194,7 @@
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <ShowProgress>LinkVerbose</ShowProgress>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-      <AdditionalLibraryDirectories>C:\Program Files\matplotplusplus 1.0.1\lib\Matplot++;%(AdditionalLibraryDirectories);C:\Program Files\matplotplusplus 1.0.1\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\26kuba05\source\repos\matplotplusplus\out\build\x64-Release\source\3rd_party;C:\Users\26kuba05\source\repos\matplotplusplus\out\build\x64-Release\source\matplot;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LinkStatus>true</LinkStatus>
     </Link>
     <CudaCompile>
@@ -228,6 +228,7 @@
     <CudaCompile Include="constants.h" />
     <ClInclude Include="C_Sim_Basic_Data.h" />
     <ClInclude Include="C_Universe.h" />
+    <ClInclude Include="neural_network.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="C_main.h" />
     <ClInclude Include="C_Object.h" />
@@ -245,6 +246,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="C_Test.cpp" />
+    <ClCompile Include="neural_network.cpp" />
     <ClCompile Include="SpacePhysicsSimulator.cpp" />
   </ItemGroup>
   <ItemGroup>

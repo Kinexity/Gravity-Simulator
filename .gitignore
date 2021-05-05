@@ -352,3 +352,4 @@ healthchecksdb
 
 
 *.txt
+/nn_data
