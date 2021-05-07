@@ -667,31 +667,118 @@ void sieve_test() {
 
 void nn_test() {
 	std::array<std::wstring, 4>
-		filenames = {L"train-images.idx3-ubyte",L"train-labels.idx1-ubyte",L"t10k-images.idx3-ubyte",L"t10k-labels.idx1-ubyte"};
-	std::ifstream 
+		filenames = { L"train-images.idx3-ubyte",L"train-labels.idx1-ubyte",L"t10k-images.idx3-ubyte",L"t10k-labels.idx1-ubyte" };
+	std::ifstream
 		images_file,
 		labels_file;
 	std::vector<std::pair<std::vector<double>, uint8_t>>
-		data;
+		train_data,
+		test_data;
+	const size_t img_size = 784;
 	std::vector<std::byte>
-		temp_raw_data(748);
+		temp_raw_data(img_size);
 	std::vector<double>
-		temp_data(748);
+		temp_data(img_size);
 	uint8_t
 		temp_label;
-	neural_network nn({748,187,17,10});
+	neural_network nn({ img_size,20,20,10 });
 	std::filesystem::path nn_data_path = L"C:\\Users\\26kuba05\\source\\repos\\SpacePhysicsSimulator\\nn_data";
-	images_file.open(nn_data_path/filenames[0], std::ios::binary);
-	labels_file.open(nn_data_path/filenames[1], std::ios::binary);
+	images_file.open(nn_data_path / filenames[0], std::ios::binary);
+	labels_file.open(nn_data_path / filenames[1], std::ios::binary);
+	images_file.seekg(16, std::ios::beg);
+	labels_file.seekg(8, std::ios::beg);
 	do {
+		images_file.read((char*)temp_raw_data.data(), img_size);
+		char read_buf;
+		labels_file.read((char*)&temp_label, 1);
 		std::transform(std::execution::par_unseq, temp_raw_data.begin(), temp_raw_data.end(), temp_data.begin(), [&](std::byte& pixel) {
-			return double(pixel) / double(std::numeric_limits<std::byte>::max());
+			return double(pixel) / 255;
 		});
-		data.push_back({ temp_data, temp_label });
-	} while(!images_file.eof());
+		train_data.push_back({ temp_data, temp_label });
+	} while (!images_file.eof());
 	images_file.close();
 	labels_file.close();
+	images_file.open(nn_data_path / filenames[2], std::ios::binary);
+	labels_file.open(nn_data_path / filenames[3], std::ios::binary);
+	images_file.seekg(16, std::ios::beg);
+	labels_file.seekg(8, std::ios::beg);
+	do {
+		images_file.read((char*)temp_raw_data.data(), img_size);
+		char read_buf;
+		labels_file.read((char*)&temp_label, 1);
+		std::transform(std::execution::par_unseq, temp_raw_data.begin(), temp_raw_data.end(), temp_data.begin(), [&](std::byte& pixel) {
+			return double(pixel) / 255;
+		});
+		test_data.push_back({ temp_data, temp_label });
+	} while (!images_file.eof());
+	images_file.close();
+	labels_file.close();
+	std::cout << "Data loaded\nStarting testing\n";
+	tc.start();
+	double cost = 0.;
+	for (size_t i = 0; i < test_data.size(); i++) {
+		auto& [data, label] = test_data[i];
+		auto&& res = nn.calc_result(data);
+		res[(int)label] -= 1;
+		auto l_cost = std::transform_reduce(res.begin(), res.end(), 0., std::plus<>(), [&](double x) {return x * x; });
+		cost += l_cost;
+	}
+	cost /= test_data.size();
+	tc.stop();
+	std::cout << "Average cost: " << cost << '\n';
+	std::cout << "Testing time " << tc.measured_timespan().count() << " s\n";
+	std::cout << "Starting training\n";
+	tc.start();
+	for (size_t i = 0; i < train_data.size(); i++) {
+		std::vector<double> vec(10);
+		auto& [data, label] = train_data[i];
+		vec[label] = 1;
+		nn.train(data, vec);
+	}
+	tc.stop();
+	std::cout << "Training time " << tc.measured_timespan().count() << " s\n";
+	std::cout << "Retesting\n";
+	tc.start();
+	cost = 0.;
+	for (size_t i = 0; i < test_data.size(); i++) {
+		auto& [data, label] = test_data[i];
+		auto&& res = nn.calc_result(data);
+		std::cout << "Number: " << (int)label << "	Guess:" << std::distance(res.begin(), std::max_element(res.begin(), res.end())) << '\n';
+		res[(int)label] -= 1;
+		auto l_cost = std::transform_reduce(res.begin(), res.end(), 0., std::plus<>(), [&](double x) {return x * x; });
+		cost += l_cost;
+	}
+	cost /= test_data.size();
+	tc.stop();
+	std::cout << "Average cost: " << cost << '\n';
+	std::cout << "Testing time " << tc.measured_timespan().count() << " s\n";
 }
+
+void get_libs_names() {
+	std::cout << std::filesystem::current_path().string() << '\n';
+	std::fstream file;
+	file.open("libs.txt", std::ios::in);
+	std::string line, lib_name;
+	while (std::getline(file, line)) {
+		std::stringstream(line) >> lib_name;
+		std::cout << lib_name << "	";
+	}
+	std::cout << '\n';
+}
+
+void prob_test() {
+	std::random_device rd;
+	std::mt19937_64 gen{ rd() };
+	std::uniform_real_distribution<double> uni{ -4.,4. };
+	size_t N = 1e8;
+	std::vector<double> a(N);
+	std::generate(std::execution::par_unseq, a.begin(), a.end(), [&]() {
+		auto b = uni(gen);
+		return b * b - 4 * uni(gen) * uni(gen);
+	});
+	auto gtz = std::count_if(std::execution::par_unseq, a.begin(), a.end(), [&](double d) { return d < 0.; });
+	std::cout << double(gtz) / N << '\n';
+};
 
 void C_Test::run() {
 	//Lagrange_points();
@@ -707,4 +794,5 @@ void C_Test::run() {
 	//rich_test();
 	//mp_test();
 	nn_test();
+	//prob_test();
 }
