@@ -740,10 +740,13 @@ void nn_test() {
 	std::cout << "Retesting\n";
 	tc.start();
 	cost = 0.;
+	size_t accurate_guesses = 0;
 	for (size_t i = 0; i < test_data.size(); i++) {
 		auto& [data, label] = test_data[i];
 		auto&& res = nn.calc_result(data);
-		std::cout << "Number: " << (int)label << "	Guess:" << std::distance(res.begin(), std::max_element(res.begin(), res.end())) << '\n';
+		//std::cout << "Number: " << (int)label << "	Guess:" << std::distance(res.begin(), std::max_element(res.begin(), res.end())) << '\n';
+		auto max_it = std::max_element(res.begin(), res.end());
+		accurate_guesses += (label == std::distance(res.begin(), max_it) && *max_it > 0.9);
 		res[(int)label] -= 1;
 		auto l_cost = std::transform_reduce(res.begin(), res.end(), 0., std::plus<>(), [&](double x) {return x * x; });
 		cost += l_cost;
@@ -751,6 +754,7 @@ void nn_test() {
 	cost /= test_data.size();
 	tc.stop();
 	std::cout << "Average cost: " << cost << '\n';
+	std::cout << "Accurancy: " << (double)accurate_guesses / test_data.size() << '\n';
 	std::cout << "Testing time " << tc.measured_timespan().count() << " s\n";
 }
 

@@ -9,6 +9,7 @@
 #include <functional>
 #include <array>
 #include <numeric>
+#include <Eigen/Dense>
 #include "PureCPPLib/C_Random.h"
 
 class neural_network {
@@ -16,10 +17,10 @@ private:
 	std::vector<size_t>
 		layer_sizes,
 		dummy_vector; //1 + deep + 1
-	std::vector<std::vector<std::vector<double>>>
+	std::vector<Eigen::MatrixXd>
 		weights,
 		weights_err;
-	std::vector<std::vector<double>>
+	std::vector<Eigen::VectorXd>
 		biases,
 		biases_err; //is equal to neuron error
 	std::random_device
@@ -32,10 +33,10 @@ private:
 		sigmoid = [&](double x) { return (std::erf(x) + 1) / 2; },
 		sigmoid_derivate = [&](double x) { return std::exp(-x * x) / 1.7724538509055160273; };
 	void
-		calc_next_layer(std::vector<double>& data, size_t layer_index);
-	std::pair<std::vector<double>, std::vector<double>>
-		calc_next_layer_with_z(std::vector<double> data, size_t layer_index);
-	std::vector<std::pair<std::vector<double>, std::vector<double>>>
+		calc_next_layer(Eigen::VectorXd& data, size_t layer_index);
+	std::pair<Eigen::VectorXd, Eigen::VectorXd>
+		calc_next_layer_with_z(Eigen::VectorXd data, size_t layer_index);
+	std::vector<std::pair<Eigen::VectorXd, Eigen::VectorXd>>
 		calc_result_with_z(std::vector<double> data);
 public:
 	neural_network(std::vector<size_t> layer_sizes_arg);
