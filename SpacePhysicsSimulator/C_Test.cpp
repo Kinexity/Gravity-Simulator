@@ -665,6 +665,16 @@ void sieve_test() {
 //	matplot::show();
 //}
 
+void print_img(const std::vector<double>& img) {
+	for (int i = 0; i < 28; i++) {
+		for (int j = 0; j < 28; j++) {
+			auto px = img[i * 28 + j];
+			std::cout << (px > 0.5 ? "#" : (px > 0 ? "*" : " "));
+		}
+		std::cout << '\n';
+	}
+}
+
 void nn_test() {
 	std::array<std::wstring, 4>
 		filenames = { L"train-images.idx3-ubyte",L"train-labels.idx1-ubyte",L"t10k-images.idx3-ubyte",L"t10k-labels.idx1-ubyte" };
@@ -713,6 +723,23 @@ void nn_test() {
 	} while (!images_file.eof());
 	images_file.close();
 	labels_file.close();
+	std::random_device rnd;
+	std::mt19937_64 mt{rnd()};
+	if (false) {
+		std::cout << "Train sample\n";
+		std::vector<std::pair<std::vector<double>, uint8_t>> smp;
+		std::sample(train_data.begin(), train_data.end(), std::back_inserter(smp), 10, mt);
+		for (auto& [img, lb] : smp) {
+			print_img(img);
+			std::cout << (int)lb << '\n';
+		}
+		std::cout << "Test sample\n";
+		std::sample(test_data.begin(), test_data.end(), std::back_inserter(smp), 10, mt);
+		for (auto& [img, lb] : smp) {
+			print_img(img);
+			std::cout << (int)lb << '\n';
+		}
+	}
 	std::cout << "Data loaded\nStarting testing\n";
 	tc.start();
 	double cost = 0.;
@@ -729,9 +756,8 @@ void nn_test() {
 	std::cout << "Testing time " << tc.measured_timespan().count() << " s\n";
 	std::cout << "Starting training\n";
 	tc.start();
-	for (size_t i = 0; i < train_data.size(); i++) {
+	for (auto& [data, label] : train_data) {
 		std::vector<double> vec(10);
-		auto& [data, label] = train_data[i];
 		vec[label] = 1;
 		nn.train(data, vec);
 	}
@@ -746,7 +772,7 @@ void nn_test() {
 		auto&& res = nn.calc_result(data);
 		//std::cout << "Number: " << (int)label << "	Guess:" << std::distance(res.begin(), std::max_element(res.begin(), res.end())) << '\n';
 		auto max_it = std::max_element(res.begin(), res.end());
-		accurate_guesses += (label == std::distance(res.begin(), max_it) && *max_it > 0.9);
+		accurate_guesses += (label == std::distance(res.begin(), max_it) /*&& *max_it > 0.9*/);
 		res[(int)label] -= 1;
 		auto l_cost = std::transform_reduce(res.begin(), res.end(), 0., std::plus<>(), [&](double x) {return x * x; });
 		cost += l_cost;
@@ -784,6 +810,13 @@ void prob_test() {
 	std::cout << double(gtz) / N << '\n';
 };
 
+void Eigen_test() {
+	Eigen::VectorXd x,y;
+	x = Eigen::VectorXd::Random(4);
+	y = Eigen::VectorXd::Random(4);
+	std::cout << x << "\n\n" << y << "\n\n" << x*y << "\n\n" << x*y.transpose();
+}
+
 void C_Test::run() {
 	//Lagrange_points();
 	//interpolation();
@@ -798,5 +831,6 @@ void C_Test::run() {
 	//rich_test();
 	//mp_test();
 	nn_test();
+	//Eigen_test();
 	//prob_test();
 }
