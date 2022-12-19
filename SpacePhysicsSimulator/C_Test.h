@@ -31,6 +31,7 @@
 #include "PureCPPLib/C_Random.h"
 #include "PureCPPLib/C_XML.h"
 #include "constants.h"
+#include "PureCPPLib/xoshiro256pp.h"
 
 template < std::size_t I = 0, typename...Tp >
 inline void sumTuples(const std::tuple < Tp...>& t1, const std::tuple < Tp...>& t2, std::tuple < Tp...>& _result) noexcept {

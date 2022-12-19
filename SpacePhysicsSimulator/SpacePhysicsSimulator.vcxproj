@@ -31,26 +31,26 @@
     <ProjectGuid>{ADCE4E06-AFB7-49CE-81FE-F1359E0D3360}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>SpacePhysicsSimulator</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 19.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -66,10 +66,10 @@
     <UseIntelDAAL>Parallel_Static</UseIntelDAAL>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
@@ -172,7 +172,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <FloatingPointModel>Strict</FloatingPointModel>
       <FloatingPointExceptions>false</FloatingPointExceptions>
-      <AdditionalIncludeDirectories>C:\Users\26kuba05\source\repos\PureCPPLib;C:\Users\26kuba05\source\repos\SpacePhysicsSimulator\ParticleEngine;C:\Users\26kuba05\source\repos\matplotplusplus\source;D:\Download\vcpkg\packages\python3_x64-windows\include\python3.7;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\26kub\source\repos\PureCPPLib;C:\Users\26kub\source\repos\SpacePhysicsSimulator\ParticleEngine;C:\Users\26kub\source\repos\matplotplusplus\source;D:\Download\vcpkg\packages\python3_x64-windows\include\python3.7;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <OptimizeForWindowsApplication>true</OptimizeForWindowsApplication>
       <EnableMatrixMultiplyLibraryCall>Yes</EnableMatrixMultiplyLibraryCall>
@@ -190,7 +190,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;matplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <ShowProgress>LinkVerbose</ShowProgress>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -228,7 +228,6 @@
     <CudaCompile Include="constants.h" />
     <ClInclude Include="C_Sim_Basic_Data.h" />
     <ClInclude Include="C_Universe.h" />
-    <ClInclude Include="neural_network.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="C_main.h" />
     <ClInclude Include="C_Object.h" />
@@ -246,15 +245,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="C_Test.cpp" />
-    <ClCompile Include="neural_network.cpp" />
     <ClCompile Include="SpacePhysicsSimulator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\PureCPPLib\PureCPPLib\PureCPPLib.vcxproj">
       <Project>{6e4f9b98-7f77-4fa6-a153-b7e64489cbed}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\ParticleEngine\ParticleEngine.vcxproj">
-      <Project>{db95104c-4d07-425d-a36f-40527550cac2}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

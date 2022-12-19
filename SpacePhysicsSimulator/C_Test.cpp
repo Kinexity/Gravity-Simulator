@@ -6,13 +6,15 @@
 #include <ranges>
 #include "PureCPPLib/polynomial.h"
 #include "PureCPPLib/sieve.h"
-#include "particle_container.h"
+//#include "particle_container.h"
 #include <boost/multiprecision/cpp_bin_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/numeric/odeint.hpp>
 #include <boost/math/tools/roots.hpp>
-#include "neural_network.h"
-//#include <matplot/matplot.h>
+#include <Eigen/Dense>
+#include <matplot/matplot.h>
+#include "PureCPPLib/xoshiro256pp.h"
+#include "PureCPPLib/C_thread_set.h"
 #undef max
 #undef min
 //#include <matplotlibcpp.h>
@@ -313,7 +315,7 @@ void polynomial_speed_test() {
 		for (auto coef_ind = 0; coef_ind < degree; coef_ind++) {
 			vec.push_back(real_rnd(gen));
 		}
-	});
+		});
 	auto test_val = real_rnd(gen);
 	tc.start();
 	auto prod = std::reduce(std::execution::par_unseq, poly_vec.begin(), poly_vec.end(), polynomial<double>({ 1.0 }), std::multiplies<polynomial<double>>());
@@ -373,7 +375,7 @@ void CVRR_test() {
 	std::for_each(std::execution::par_unseq, res.begin(), res.end(), [&](auto& elem) {
 		auto i = std::distance(&*res.begin(), &elem);
 		std::tie(vecs[1][i], vecs[0][i]) = std::minmax(rnd() % gen_limit + offset, rnd() % gen_limit + offset);
-	});
+		});
 	std::function ref = binomial_coefficient;
 	return_value_wrapper fn = ref;
 	tc.start();
@@ -401,7 +403,7 @@ void intrin_test() {
 		v.resize(N);
 		std::for_each(std::execution::par_unseq, v.begin(), v.end(), [&](auto& elem) {
 			elem = (rnd() % 100 + 1);// 2.;
-		});
+			});
 	}
 	//tc.start();
 	//for (auto i = 0; i < N; i += 4) {
@@ -675,115 +677,6 @@ void print_img(const std::vector<double>& img) {
 	}
 }
 
-void nn_test() {
-	std::array<std::wstring, 4>
-		filenames = { L"train-images.idx3-ubyte",L"train-labels.idx1-ubyte",L"t10k-images.idx3-ubyte",L"t10k-labels.idx1-ubyte" };
-	std::ifstream
-		images_file,
-		labels_file;
-	std::vector<std::pair<std::vector<double>, uint8_t>>
-		train_data,
-		test_data;
-	const size_t img_size = 784;
-	std::vector<std::byte>
-		temp_raw_data(img_size);
-	std::vector<double>
-		temp_data(img_size);
-	uint8_t
-		temp_label;
-	neural_network nn({ img_size,20,20,10 });
-	std::filesystem::path nn_data_path = L"C:\\Users\\26kuba05\\source\\repos\\SpacePhysicsSimulator\\nn_data";
-	images_file.open(nn_data_path / filenames[0], std::ios::binary);
-	labels_file.open(nn_data_path / filenames[1], std::ios::binary);
-	images_file.seekg(16, std::ios::beg);
-	labels_file.seekg(8, std::ios::beg);
-	do {
-		images_file.read((char*)temp_raw_data.data(), img_size);
-		char read_buf;
-		labels_file.read((char*)&temp_label, 1);
-		std::transform(std::execution::par_unseq, temp_raw_data.begin(), temp_raw_data.end(), temp_data.begin(), [&](std::byte& pixel) {
-			return double(pixel) / 255;
-		});
-		train_data.push_back({ temp_data, temp_label });
-	} while (!images_file.eof());
-	images_file.close();
-	labels_file.close();
-	images_file.open(nn_data_path / filenames[2], std::ios::binary);
-	labels_file.open(nn_data_path / filenames[3], std::ios::binary);
-	images_file.seekg(16, std::ios::beg);
-	labels_file.seekg(8, std::ios::beg);
-	do {
-		images_file.read((char*)temp_raw_data.data(), img_size);
-		char read_buf;
-		labels_file.read((char*)&temp_label, 1);
-		std::transform(std::execution::par_unseq, temp_raw_data.begin(), temp_raw_data.end(), temp_data.begin(), [&](std::byte& pixel) {
-			return double(pixel) / 255;
-		});
-		test_data.push_back({ temp_data, temp_label });
-	} while (!images_file.eof());
-	images_file.close();
-	labels_file.close();
-	std::random_device rnd;
-	std::mt19937_64 mt{rnd()};
-	if (false) {
-		std::cout << "Train sample\n";
-		std::vector<std::pair<std::vector<double>, uint8_t>> smp;
-		std::sample(train_data.begin(), train_data.end(), std::back_inserter(smp), 10, mt);
-		for (auto& [img, lb] : smp) {
-			print_img(img);
-			std::cout << (int)lb << '\n';
-		}
-		std::cout << "Test sample\n";
-		std::sample(test_data.begin(), test_data.end(), std::back_inserter(smp), 10, mt);
-		for (auto& [img, lb] : smp) {
-			print_img(img);
-			std::cout << (int)lb << '\n';
-		}
-	}
-	std::cout << "Data loaded\nStarting testing\n";
-	tc.start();
-	double cost = 0.;
-	for (size_t i = 0; i < test_data.size(); i++) {
-		auto& [data, label] = test_data[i];
-		auto&& res = nn.calc_result(data);
-		res[(int)label] -= 1;
-		auto l_cost = std::transform_reduce(res.begin(), res.end(), 0., std::plus<>(), [&](double x) {return x * x; });
-		cost += l_cost;
-	}
-	cost /= test_data.size();
-	tc.stop();
-	std::cout << "Average cost: " << cost << '\n';
-	std::cout << "Testing time " << tc.measured_timespan().count() << " s\n";
-	std::cout << "Starting training\n";
-	tc.start();
-	for (auto& [data, label] : train_data) {
-		std::vector<double> vec(10);
-		vec[label] = 1;
-		nn.train(data, vec);
-	}
-	tc.stop();
-	std::cout << "Training time " << tc.measured_timespan().count() << " s\n";
-	std::cout << "Retesting\n";
-	tc.start();
-	cost = 0.;
-	size_t accurate_guesses = 0;
-	for (size_t i = 0; i < test_data.size(); i++) {
-		auto& [data, label] = test_data[i];
-		auto&& res = nn.calc_result(data);
-		//std::cout << "Number: " << (int)label << "	Guess:" << std::distance(res.begin(), std::max_element(res.begin(), res.end())) << '\n';
-		auto max_it = std::max_element(res.begin(), res.end());
-		accurate_guesses += (label == std::distance(res.begin(), max_it) /*&& *max_it > 0.9*/);
-		res[(int)label] -= 1;
-		auto l_cost = std::transform_reduce(res.begin(), res.end(), 0., std::plus<>(), [&](double x) {return x * x; });
-		cost += l_cost;
-	}
-	cost /= test_data.size();
-	tc.stop();
-	std::cout << "Average cost: " << cost << '\n';
-	std::cout << "Accurancy: " << (double)accurate_guesses / test_data.size() << '\n';
-	std::cout << "Testing time " << tc.measured_timespan().count() << " s\n";
-}
-
 void get_libs_names() {
 	std::cout << std::filesystem::current_path().string() << '\n';
 	std::fstream file;
@@ -797,25 +690,70 @@ void get_libs_names() {
 }
 
 void prob_test() {
-	std::random_device rd;
-	std::mt19937_64 gen{ rd() };
 	std::uniform_real_distribution<double> uni{ -4.,4. };
 	size_t N = 1e8;
 	std::vector<double> a(N);
-	std::generate(std::execution::par_unseq, a.begin(), a.end(), [&]() {
-		auto b = uni(gen);
-		return b * b - 4 * uni(gen) * uni(gen);
-	});
-	auto gtz = std::count_if(std::execution::par_unseq, a.begin(), a.end(), [&](double d) { return d < 0.; });
-	std::cout << double(gtz) / N << '\n';
+	tc.start();
+	PCL::C_thread_set ts;
+	auto threads = std::thread::hardware_concurrency();
+	std::atomic<int> gtz = 0;
+	std::mutex mtx;
+	std::function fn = [&]() {
+		xoshiro256pp gen;
+		int local_sum = 0;
+		for (int i = 0; i < N / threads; i++) {
+			auto b = uni(gen);
+			local_sum += b * b - 4 * uni(gen) * uni(gen) < 0.;
+		}
+		gtz += local_sum;
+	};
+	ts.run(fn, threads);
+	tc.stop();
+	std::cout << tc.measured_timespan().count() << '\t' << double(gtz) / N << '\n';
 };
 
-void Eigen_test() {
-	Eigen::VectorXd x,y;
-	x = Eigen::VectorXd::Random(4);
-	y = Eigen::VectorXd::Random(4);
-	std::cout << x << "\n\n" << y << "\n\n" << x*y << "\n\n" << x*y.transpose();
-}
+void ts_test() {
+	auto ftr = [&](size_t n) {
+		double f = 1.;
+		for (size_t i = 1; i < n; i++) {
+			f *= i;
+		}
+		return f;
+	};
+	tc.start();
+	size_t N = 12;
+	std::random_device rd;
+	std::mt19937_64 gen{ rd() };
+	std::uniform_real_distribution<double> uni{ 0.,1. };
+	std::vector<double> x, y, path_lenghts;
+	std::vector<std::vector<double>> dist;
+	std::vector<size_t> order(N);
+	for (size_t i = 0; i < N; i++) {
+		x.push_back(uni(gen));
+		y.push_back(uni(gen));
+	}
+	for (size_t i = 0; i < N; i++) {
+		dist.push_back({});
+		for (size_t j = 0; j < N; j++) {
+			dist[i].push_back(std::hypot(x[i] - x[j], y[i] - y[j]));
+		}
+	}
+	std::iota(order.begin(), order.end(), 0);
+	double lenght, min_lenght = std::numeric_limits<double>::infinity();
+	do {
+		lenght = 0.;
+		for (size_t i = 0; i < N; i++) {
+			lenght += dist[order[i]][order[(i + 1) % N]];
+		}
+		path_lenghts.push_back(lenght);
+	} while (std::next_permutation(order.begin() + 1, order.end()));
+	tc.stop();
+	double avg = std::reduce(std::execution::par_unseq, path_lenghts.begin(), path_lenghts.end(), 0., std::plus<>()) / ftr(N);
+	std::sort(std::execution::par_unseq, path_lenghts.begin(), path_lenghts.end());
+	std::cout << "Time: " << tc.measured_timespan().count() << " s\n";
+	std::cout << "Average: " << avg << "\n";
+	std::cout << "Min: " << *std::min_element(std::execution::par_unseq, path_lenghts.begin(), path_lenghts.end()) << "\n";
+};
 
 void C_Test::run() {
 	//Lagrange_points();
@@ -830,7 +768,6 @@ void C_Test::run() {
 	//filter_data();
 	//rich_test();
 	//mp_test();
-	nn_test();
-	//Eigen_test();
-	//prob_test();
+	prob_test();
+	//ts_test();
 }
