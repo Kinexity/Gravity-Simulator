@@ -12,6 +12,7 @@
 #include <boost/numeric/odeint.hpp>
 #include <boost/math/tools/roots.hpp>
 #include <Eigen/Dense>
+//#include <Eigen/Sparse>
 #include <matplot/matplot.h>
 #include "PureCPPLib/xoshiro256pp.h"
 #include "PureCPPLib/C_thread_set.h"
@@ -721,21 +722,19 @@ void ts_test() {
 		return f;
 	};
 	tc.start();
-	size_t N = 12;
-	std::random_device rd;
-	std::mt19937_64 gen{ rd() };
-	std::uniform_real_distribution<double> uni{ 0.,1. };
+	size_t N = 13;
+	const std::uniform_real_distribution<double> uni{ 0.,1. };
 	std::vector<double> x, y, path_lenghts;
-	std::vector<std::vector<double>> dist;
+	//std::vector<std::vector<double>> dist;
+	Eigen::MatrixXd dist = Eigen::MatrixXd::Zero(N, N);
 	std::vector<size_t> order(N);
 	for (size_t i = 0; i < N; i++) {
-		x.push_back(uni(gen));
-		y.push_back(uni(gen));
+		x.push_back(uni(rnd));
+		y.push_back(uni(rnd));
 	}
 	for (size_t i = 0; i < N; i++) {
-		dist.push_back({});
 		for (size_t j = 0; j < N; j++) {
-			dist[i].push_back(std::hypot(x[i] - x[j], y[i] - y[j]));
+			dist(i, j) = std::hypot(x[i] - x[j], y[i] - y[j]);
 		}
 	}
 	std::iota(order.begin(), order.end(), 0);
@@ -743,7 +742,7 @@ void ts_test() {
 	do {
 		lenght = 0.;
 		for (size_t i = 0; i < N; i++) {
-			lenght += dist[order[i]][order[(i + 1) % N]];
+			lenght += dist(order[i], order[(i + 1) % N]);
 		}
 		path_lenghts.push_back(lenght);
 	} while (std::next_permutation(order.begin() + 1, order.end()));
@@ -753,6 +752,16 @@ void ts_test() {
 	std::cout << "Time: " << tc.measured_timespan().count() << " s\n";
 	std::cout << "Average: " << avg << "\n";
 	std::cout << "Min: " << *std::min_element(std::execution::par_unseq, path_lenghts.begin(), path_lenghts.end()) << "\n";
+};
+
+void solve_test() {
+	Eigen::Matrix3f m;
+	Eigen::Vector3f v;
+	m << 1, 0, 0, 0, 1, 1, 0, 1, 1;
+	v << 1, 1, 1;
+	std::cout << m << "\n\n" << v << "\n\n";
+	auto a = m.llt().solve(v);
+	std::cout << a << "\n\n";
 };
 
 void C_Test::run() {
@@ -768,6 +777,100 @@ void C_Test::run() {
 	//filter_data();
 	//rich_test();
 	//mp_test();
-	prob_test();
-	//ts_test();
+	//prob_test();
+	ts_test();
+	//solve_test();
+}
+
+class Minesweeper_field {
+private:
+	Eigen::MatrixXi
+		bomb_field,
+		known_field;
+	Eigen::MatrixXf
+		bomb_probability_field;
+	//Eigen::SparseMatrix<int> sp_mat;
+	int32_t
+		rows,
+		cols,
+		mine_count;
+	xoshiro256pp
+		rng;
+	bool
+		game_lost;
+	bool within_bounds(int32_t row, int32_t col);
+	void set_mines(int32_t row, int32_t col);
+	void check_mine_equality(int32_t row, int32_t col);
+	void explore(int32_t row, int32_t col);
+public:
+	Minesweeper_field() = default;
+	~Minesweeper_field() {};
+	void initialize_field();
+	bool solve_field();
+};
+
+bool Minesweeper_field::within_bounds(int32_t row, int32_t col) {
+	return std::clamp(row, 0, rows) == row && std::clamp(col, 0, cols) == col;
+}
+
+void Minesweeper_field::set_mines(int32_t row, int32_t col) {
+	for (int row_with_shift = std::max(row - 1, 0); row_with_shift < std::min(row + 2, rows); row_with_shift++) {
+		for (int col_with_shift = std::max(col - 1, 0); col_with_shift < std::min(col + 2, rows); col_with_shift++) {
+			known_field(row_with_shift, col_with_shift) -= (known_field(row_with_shift, col_with_shift) > 0) || (known_field(row_with_shift, col_with_shift) == -1);
+		}
+	}
+}
+
+void Minesweeper_field::check_mine_equality(int32_t row, int32_t col) {
+	if (known_field(row, col) > 0) {
+		int count = 0; //unknown fields counter
+		for (int row_with_shift = std::max(row - 1, 0); row_with_shift < std::min(row + 2, rows); row_with_shift++) {
+			for (int col_with_shift = std::max(col - 1, 0); col_with_shift < std::min(col + 2, rows); col_with_shift++) {
+				count += (col_with_shift != col || row_with_shift != row) && (known_field(row_with_shift, col_with_shift) == -1);
+				mine_count -= (known_field(row_with_shift, col_with_shift) == -1);
+			}
+		}
+		if (count == known_field(row, col)) {
+			set_mines(row, col);
+		}
+		for (int row_with_shift = std::max(row - 1, 0); row_with_shift < std::min(row + 2, rows); row_with_shift++) {
+			for (int col_with_shift = std::max(col - 1, 0); col_with_shift < std::min(col + 2, rows); col_with_shift++) {
+				check_mine_equality(row_with_shift, col_with_shift);
+			}
+		}
+	}
+	else if (known_field(row, col) == 0) {
+		explore(row, col);
+	}
+}
+
+void Minesweeper_field::explore(int32_t row, int32_t col) {
+
+}
+
+void Minesweeper_field::initialize_field() {
+	bomb_field = Eigen::MatrixXi::Zero(rows, cols);
+	known_field = -Eigen::MatrixXi::Ones(rows, cols);
+	std::vector<size_t>
+		indices(rows * cols),
+		sampled_indices(mine_count);
+	std::iota(indices.begin(), indices.end(), 0);
+	std::sample(indices.begin(), indices.end(), sampled_indices.begin(), mine_count, rng);
+	for (auto i : sampled_indices) {
+		bomb_field(i) = 1;
+	}
+}
+
+bool Minesweeper_field::solve_field() {
+	do {
+		//iterate over known fields to check if all unknown fields around each could be bombs
+		for (int row = 0; row < rows; row++) {
+			for (int col = 0; col < cols; col++) {
+				if (known_field(row, col) > 0) {
+					check_mine_equality(row, col);
+				}
+			}
+		}
+	} while (mine_count > 0 && !game_lost);
+	return false;
 }

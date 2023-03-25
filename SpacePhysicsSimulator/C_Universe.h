@@ -32,7 +32,7 @@ namespace Windows {
 #include "PureCPPLib/C_Event_Log.h"
 #include "PureCPPLib/C_Indexer.h"
 #include "PureCPPLib/C_Time_Counter.h"
-#include "PureCPPLib/C_Random.h"
+#include "PureCPPLib/xoshiro256pp.h"
 #include "constants.h"
 #undef max
 #undef min
@@ -77,13 +77,13 @@ private:
 	bool
 		bool_pre_sim_edit = false,
 		abort_simulation = false,
-		include_analysis = false;
+		include_analysis = true;
 	std::once_flag
 		sync_flags[18];
 	double
 		E_c_0 = 0,
 		E_c_k = 0;
-	std::unique_ptr< std::unique_ptr<double[]>[]>
+	std::array<std::unique_ptr<double[]>, dimensions>
 		position,
 		velocity,
 		acceleration;
@@ -349,9 +349,6 @@ inline void C_Universe<dimensions>::simulation_packed_thread() {
 		eq_arr_start_point = to_4_mul(sim_basic_data().num_of_objects * thr_index / num_of_threads_in_use),
 		eq_arr_end_point = to_4_mul(sim_basic_data().num_of_objects * (thr_index + 1) / num_of_threads_in_use);
 	std::call_once(sync_flags[sync_flag_index++], [&] {
-		position = std::make_unique<std::unique_ptr<double[]>[]>(dimensions);
-		velocity = std::make_unique<std::unique_ptr<double[]>[]>(dimensions);
-		acceleration = std::make_unique<std::unique_ptr<double[]>[]>(dimensions);
 		for (auto axis = 0; axis < dimensions; axis++) {
 			position[axis] = std::make_unique<double[]>(sim_basic_data().num_of_objects + simd_width - 1);
 			velocity[axis] = std::make_unique<double[]>(sim_basic_data().num_of_objects + simd_width - 1);
@@ -419,8 +416,8 @@ inline void C_Universe<dimensions>::simulation_packed_thread() {
 		vec[dimensions] = { zero_avx },
 		acc_obj[dimensions] = { zero_avx },
 		sgp = zero_avx;
-	auto
-		temp_acceleration = std::make_unique<std::unique_ptr<double[]>[]>(dimensions);
+	decltype(acceleration)
+		temp_acceleration;
 	barrier->arrive_and_wait();
 	for (auto axis = 0; axis < dimensions; axis++) {
 		temp_acceleration[axis] = std::make_unique<double[]>(sim_basic_data().num_of_objects + simd_width - 1);
@@ -453,8 +450,8 @@ inline void C_Universe<dimensions>::simulation_packed_thread() {
 		for (uint_fast64_t second = 1; second <= period_lenght; second++) {
 			for (uint_fast64_t sec_cycle = 0; sec_cycle < cycles_per_second; sec_cycle++) {
 				for (auto axis = 0; axis < dimensions; axis++) {
-					std::fill(std::execution::par, &(temp_acceleration[axis][arr_start_point]), &(temp_acceleration[axis][sim_basic_data().num_of_objects]), 0.0); //clear temp_acceleration
-					std::fill(std::execution::par, &(acceleration[axis][eq_arr_start_point]), &(acceleration[axis][eq_arr_end_point]), 0.0); //clear acceleration
+					std::fill(&(temp_acceleration[axis][arr_start_point]), &(temp_acceleration[axis][sim_basic_data().num_of_objects]), 0.0); //clear temp_acceleration
+					std::fill(&(acceleration[axis][eq_arr_start_point]), &(acceleration[axis][eq_arr_end_point]), 0.0); //clear acceleration
 				}
 				barrier->arrive_and_wait();
 				for (uint_fast64_t obj_id = arr_start_point; obj_id < arr_end_point; obj_id += 4) {
@@ -463,7 +460,7 @@ inline void C_Universe<dimensions>::simulation_packed_thread() {
 						pos[axis] = _mm256_load_pd(&(position[axis][obj_id]));
 						acc_obj[axis] = zero_avx;
 					}
-					auto fn_ = [&](uint_fast64_t begin, uint_fast64_t end, std::unique_ptr<std::unique_ptr<double[]>[]>& acc_arr) {
+					auto fn_ = [&](uint_fast64_t begin, uint_fast64_t end, std::array<std::unique_ptr<double[]>, dimensions>& acc_arr) {
 						for (uint_fast64_t op_obj_id = begin; op_obj_id < end; op_obj_id++) { 
 							auto dist_2 = zero_avx;
 							for (auto axis = 0; axis < dimensions; axis++) {
@@ -646,7 +643,7 @@ inline void C_Universe<dimensions>::result_recording() {
 	if (include_analysis) {
 		bool files_good = true;
 		PCL::C_Event_Log_Buffer buffer(event_log_obj, true, "OUTPUT_FILES");
-		std::filesystem::path file_path = std::filesystem::current_path() / ("simulations/simulation[" + std::to_string(settings_obj->get_settings().num_of_sim) + "]" + std::string(action_identifier == 4 ? "[ST]" : "") + "/result.bin");
+		std::filesystem::path file_path = recording_path / ("simulation[" + std::to_string(settings_obj->get_settings().num_of_sim) + "]" + std::string(action_identifier == 4 ? "[ST]" : "") + "\\result.bin");
 		std::fstream file(file_path, std::ios::out | std::ios::binary);
 		if (!(files_good &= file.is_open() && file)) {
 			buffer() << "Creating file " << file_path.string() << "- failure" << _endl_;

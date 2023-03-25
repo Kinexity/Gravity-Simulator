@@ -27,7 +27,5 @@ constexpr uint_fast64_t
 num_of_days_to_analyse = 1;
 const uint_fast64_t
 grid_size = size_of_block * num_of_blocks;*/
-constexpr uint_fast64_t
-num_of_analysis_types = 2;
 #define nm(x) #x << " = " << x
 #endif // !consts

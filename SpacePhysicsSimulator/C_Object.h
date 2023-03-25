@@ -9,7 +9,7 @@
 #include <string>
 #include <cstdint>
 #include <array>
-#include <PureCPPLib/C_Random.h>
+#include <PureCPPLib/xoshiro256pp.h>
 #undef max
 
 template <size_t dims>
