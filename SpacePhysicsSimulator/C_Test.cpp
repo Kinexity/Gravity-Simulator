@@ -754,6 +754,25 @@ void ts_test() {
 	std::cout << "Min: " << *std::min_element(std::execution::par_unseq, path_lenghts.begin(), path_lenghts.end()) << "\n";
 };
 
+void basis_test() {
+	// Define the matrix A and the vector b
+	Eigen::MatrixXd A(3, 3);
+	A << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+	Eigen::VectorXd b(3);
+	b << 1, 2, 3;
+
+	// Solve the system of linear equations using the QR decomposition method
+	Eigen::VectorXd x = A.colPivHouseholderQr().solve(b);
+
+	// Find the null space of A using the fullPivHouseholderQr() method
+	Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qr(A);
+	Eigen::MatrixXd Q = qr.matrixQ();
+	Eigen::MatrixXd nullspace = Q.rightCols(A.cols() - qr.rank());
+
+	// Print the basis vectors of the null space
+	std::cout << "Basis vectors of the null space:\n" << nullspace << std::endl;
+}
+
 void solve_test() {
 	Eigen::Matrix3f m;
 	Eigen::Vector3f v;
@@ -763,6 +782,68 @@ void solve_test() {
 	auto a = m.llt().solve(v);
 	std::cout << a << "\n\n";
 };
+
+// Define constants
+const double f1 = 87.98;
+const double sigma_f1 = 0.16;
+const double f2 = 16.36;
+const double sigma_f2 = 0.07;
+
+std::vector<bool> indices;
+
+// MC how many muons pass both layers
+double MC_count_pass(int N, double a, double h, double gamma) {
+	std::uniform_real_distribution<double> dis(0.0, 1.0);
+	double prob_sum = 0;
+	std::map<std::thread::id, xoshiro256pp> gens;
+	auto h_a_ratio = h / a;
+
+	prob_sum = std::transform_reduce(std::execution::par, indices.begin(), indices.end(), double(), std::plus<double>(), [&](bool ph)->double {
+		auto& gen = gens[std::this_thread::get_id()];
+		double inv_cos_2_theta = std::pow(dis(gen), - 2 / (gamma + 1));
+		auto _tan_ = h_a_ratio * std::sqrt(inv_cos_2_theta - 1);
+		double phi_ = dis(gen) * std::numbers::pi / 2;
+		double x_b = 1 - _tan_ * cos(phi_);
+		double y_b = 1 - _tan_ * sin(phi_);
+
+		return (x_b >= 0) * (y_b >= 0) * x_b * y_b;
+		});
+	return prob_sum / N;
+}
+
+// Calculate ratio
+double ratio(double gamma, uint64_t N = 10e7) {
+	return MC_count_pass(N, 1.0, 0.5, gamma) / MC_count_pass(N, 1.0, 2.0, gamma);
+}
+
+void MC_prob3() {
+	PCL::C_Time_Counter tc;
+	tc.start();
+
+	double f_ratio = f1 / f2;
+	double gamma_init = 1.0; // Initial guess for gamma
+	double tol = 1e-5; // Tolerance for convergence
+	auto N = 10e6;
+	indices.resize(N);
+
+	auto result = boost::math::tools::bisect([&](double gamma) { return ratio(gamma, N) - f_ratio; },
+		0.1,
+		5.,
+		[&](double min, double max) { return (max - min) < tol; });
+	
+	std::cout << "Gamma from MC simulation: " << result.first << std::endl;
+	auto phi_tot = (1 / MC_count_pass(N, 1.0, 0.5, result.first)) * f1;
+	std::cout << "Phi_tot from MC: " << phi_tot << std::endl;
+
+	tc.stop();
+
+	std::cout << tc.measured_timespan().count() << " s\n";
+
+	for (double gamma = 1.7; gamma < 1.8; gamma += 0.01) {
+		std::cout << gamma << "\t\t" << ratio(gamma, N) - f_ratio << "\n";
+	}
+}
+
 
 void C_Test::run() {
 	//Lagrange_points();
@@ -778,8 +859,10 @@ void C_Test::run() {
 	//rich_test();
 	//mp_test();
 	//prob_test();
-	ts_test();
+	//ts_test();
+	//basis_test();
 	//solve_test();
+	MC_prob3();
 }
 
 class Minesweeper_field {

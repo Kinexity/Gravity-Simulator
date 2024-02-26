@@ -25,7 +25,7 @@ private:
 	std::unique_ptr<C_Settings>
 		settings_obj;
 	PCL::C_Event_Log
-		event_log_obj{ false };
+		event_log_obj{ true };
 	PCL::C_Time_Counter
 		t_counter;
 public:
