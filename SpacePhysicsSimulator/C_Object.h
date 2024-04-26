@@ -12,6 +12,8 @@
 #include <PureCPPLib/xoshiro256pp.h>
 #undef max
 
+inline static thread_local xoshiro256pp rnd;
+
 template <size_t dims>
 class C_Object {
 private:
@@ -49,7 +51,7 @@ public:
 
 template <size_t dims>
 inline void C_Object<dims>::calculate_sgp() {
-	standard_grav_param = mass * 6.67430151515151515151515e-11;
+	standard_grav_param = mass * 6.6743e-11;
 }
 
 template <size_t dims>
@@ -68,13 +70,13 @@ inline void C_Object<dims>::data_rand(uint_fast64_t noo) {
 	static std::uniform_real_distribution urdist(0.19884, std::nextafter(1.9884, std::numeric_limits<double>::max()));
 	mass = urdist(rd) * pow(10, 29);
 	radius = pow(10, 1);
-	auto x = static_cast<uint_fast64_t>(sqrt(cbrt(noo)));
+	auto x = static_cast<uint_fast64_t>(std::pow(noo, 1./6));
 	auto min_pow = 6;
 	for (auto& elem : position) {
-		elem = ((static_cast<double>(rnd() % 9000000 + 1000000)) * pow(10, rnd() % 5 + min_pow) * ((rnd() % 2 == 1) ? 1.0 : -1.0));
+		elem = (static_cast<double>(rnd() % 9000000 + 1000000)) * pow(10, rnd() % 5 + min_pow) * (2 * (rnd() % 2) - 1);
 	}
 	for (auto& elem : velocity) {
-		elem = (static_cast<double>(rnd() % 9000 + 1000) * ((rnd() % 2 == 1) ? 1.0 : -1.0));
+		elem = static_cast<double>(rnd() % 9000 + 1000) * (2 * (rnd() % 2) - 1);
 	}
 }
 

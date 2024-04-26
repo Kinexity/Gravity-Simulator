@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <numbers>
 #include <ranges>
+#include <bit>
 #include "PureCPPLib/polynomial.h"
 #include "PureCPPLib/sieve.h"
 //#include "particle_container.h"
@@ -21,21 +22,22 @@
 //#include <matplotlibcpp.h>
 //namespace pt = matplotlibcpp;
 
+static thread_local xoshiro256pp rnd;
+
 static __m256d _mm256_abs_pd(__m256d a) {
 	const unsigned long long abs_mask = 0x7FFFFFFFFFFFFFFF;
-	const unsigned long long abs_full[8] =
-	{ abs_mask, abs_mask, abs_mask, abs_mask, abs_mask, abs_mask, abs_mask,
-	   abs_mask };
-	return _mm256_and_pd(_mm256_load_pd((double*)abs_full), a);
+	return _mm256_and_pd(_mm256_set1_pd(std::bit_cast<double>(abs_mask)), a);
 }
 
 inline
 double _mm256_hreduce_pd(__m256d v) {
-	__m128d vlow = _mm256_castpd256_pd128(v);
-	__m128d vhigh = _mm256_extractf128_pd(v, 1); // high 128
-	vlow = _mm_add_pd(vlow, vhigh);     // reduce down to 128
-	__m128d high64 = _mm_unpackhi_pd(vlow, vlow);
-	return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64));  // reduce to scalar
+	std::array<double, 4> temp;
+	_mm256_store_pd(temp.data(), v);
+	double sum = 0.;
+	for (auto& elem : temp) {
+		sum += elem;
+	}
+	return sum;
 }
 
 template <typename T> int sgn(T val) {
@@ -483,45 +485,6 @@ void solution_test() {
 	//matplot::show();
 }
 
-void rename_files() {
-	std::vector<std::pair<std::wstring, std::wstring>> vec;
-	std::filesystem::path dir("D:\\YTBUP\\MxR Mods");
-	for (auto& file : std::filesystem::directory_iterator(dir)) {
-		auto old_fname = file.path().filename().wstring();
-		auto num_str = old_fname.substr(0, 4);
-		auto name_str = old_fname.substr(4);
-		int num = std::stoi(num_str) - 373;
-		auto new_fname = (std::wstringstream() << std::setw(4) << std::setfill(L'0') << num << L'.').str();
-		new_fname += name_str;
-		vec.push_back({ old_fname, new_fname });
-	}
-	for (auto& [old_fname, new_fname] : vec) {
-		std::filesystem::rename(dir / old_fname, dir / new_fname);
-	}
-}
-
-void filter_data() {
-	std::filesystem::path dir("C:\\Users\\26kuba05\\source\\NewFolder1");
-	for (auto& file : std::filesystem::directory_iterator(dir)) {
-		std::vector<std::string> lines;
-		auto path = file.path();
-		std::fstream file;
-		file.open(path, std::ios::in);
-		std::string line;
-		while (file >> line) {
-			lines.push_back(line);
-		}
-		file.close();
-		std::vector<std::string> new_lines{ lines.begin() + 2,lines.end() };
-		file.open(path, std::ios::out | std::ios::trunc);
-		for (auto& elem : new_lines) {
-			std::replace(elem.begin(), elem.end(), ',', ' ');
-			file << elem << '\n';
-		}
-		file.close();
-	}
-}
-
 class ChebyshevInterpolant {
 public:
 	// do not allow default constructor
@@ -613,8 +576,8 @@ std::vector<double> Sum_series(std::function<double(int)> f, int i) {
 	return v;
 }
 
-int silnia(int k) {
-	int sil = 1;
+int64_t factorial(int k) {
+	int64_t sil = 1;
 	while (k > 1) {
 		sil = sil * k;
 		k--;
@@ -624,19 +587,19 @@ int silnia(int k) {
 
 double Rich_extrapolation(std::vector<double> v, int k) {
 	double R_k = 0.0;
-	int N = v.size() - k;
+	const int N = v.size() - k;
 	for (int i = 0; i < k; i++) {
-		R_k += pow((N + i), i) * pow(-1, (k + i)) * v.at(N + i - 1) / (silnia(i) * silnia(k - i));
+		R_k += std::pow((N + i), i) * std::pow(-1, (k + i)) * v.at(N + i - 1) / (factorial(i) * factorial(k - i));
 	}
 	return R_k;
 }
 
 int rich_test() {
-	double porownanie = std::pow(std::numbers::pi, 2) / 6;
-	int N = 1000;
+	const double porownanie = std::pow(std::numbers::pi, 2) / 6;
+	const int N = 1000;
 	std::vector<double> Sum_vec = Sum_series(fun, N);
-	double R1 = N * Sum_vec.at(N - 1) - (N - 1) * Sum_vec.at(N - 2);
-	double R2 = (N * N * Sum_vec.at(N - 1) - 2 * (N - 1) * (N - 1) * Sum_vec.at(N - 2) + (N - 2) * (N - 2) * Sum_vec.at(N - 3)) / 2;
+	const double R1 = N * Sum_vec.at(N - 1) - (N - 1) * Sum_vec.at(N - 2);
+	const double R2 = (N * N * Sum_vec.at(N - 1) - 2 * (N - 1) * (N - 1) * Sum_vec.at(N - 2) + (N - 2) * (N - 2) * Sum_vec.at(N - 3)) / 2;
 	std::cout << "(Na piechote) R1-pi^2/6 = " << R1 - porownanie << std::endl;
 	std::cout << "(Na piechote) R2-pi^2/6 = " << R2 - porownanie << std::endl;
 	std::cout << "R1-pi^2/6 = " << Rich_extrapolation(Sum_vec, 1) - porownanie << std::endl;
@@ -723,7 +686,7 @@ void ts_test() {
 	};
 	tc.start();
 	size_t N = 13;
-	const std::uniform_real_distribution<double> uni{ 0.,1. };
+	std::uniform_real_distribution<double> uni{ 0.,1. };
 	std::vector<double> x, y, path_lenghts;
 	//std::vector<std::vector<double>> dist;
 	Eigen::MatrixXd dist = Eigen::MatrixXd::Zero(N, N);
@@ -794,25 +757,59 @@ std::vector<bool> indices;
 // MC how many muons pass both layers
 double MC_count_pass(int N, double a, double h, double gamma) {
 	std::uniform_real_distribution<double> dis(0.0, 1.0);
+	std::uniform_real_distribution<double> dis_phi(0.0, std::numbers::pi / 2);
 	double prob_sum = 0;
-	std::map<std::thread::id, xoshiro256pp> gens;
 	auto h_a_ratio = h / a;
 
-	prob_sum = std::transform_reduce(std::execution::par, indices.begin(), indices.end(), double(), std::plus<double>(), [&](bool ph)->double {
-		auto& gen = gens[std::this_thread::get_id()];
-		double inv_cos_2_theta = std::pow(dis(gen), - 2 / (gamma + 1));
-		auto _tan_ = h_a_ratio * std::sqrt(inv_cos_2_theta - 1);
-		double phi_ = dis(gen) * std::numbers::pi / 2;
-		double x_b = 1 - _tan_ * cos(phi_);
-		double y_b = 1 - _tan_ * sin(phi_);
+	//auto indices = std::views::iota(0, N);
 
-		return (x_b >= 0) * (y_b >= 0) * x_b * y_b;
+	prob_sum = std::transform_reduce(std::execution::par_unseq, indices.begin(), indices.end(), double(), std::plus<double>(), [&](bool ph)->double {
+		thread_local xoshiro256pp gen;
+		const double inv_cos_2_theta = std::pow(dis(gen), - 2 / (gamma + 1));
+		const auto _tan_ = h_a_ratio * std::sqrt(inv_cos_2_theta - 1);
+		const double phi_ = dis_phi(gen);
+		const double x_b = 1 - _tan_ * cos(phi_);
+		const double y_b = 1 - _tan_ * sin(phi_);
+
+		return std::max(x_b, 0.) * std::max(y_b, 0.);
 		});
 	return prob_sum / N;
 }
 
+//inline __m256d _mm256_cvtepi64_pd_AVX2(const __m256i a) {
+//	std::array<int64_t, 4> temp_initial;
+//	std::array<double, 4> temp_result;
+//	_mm256_store_si256((__m256i*)temp_initial.data(), a);
+//	for (int i = 0; i < temp_initial.size(); i++) {
+//		temp_result[i] = temp_initial[i];
+//	}
+//	return _mm256_load_pd(temp_result.data());
+//}
+//
+//// MC how many muons pass both layers
+//double MC_count_pass(int N, double a, double h, double gamma) {
+//	//std::uniform_real_distribution<__m256d> dis(_mm256_setzero_pd(), _mm256_set1_pd(1.0));
+//	double prob_sum = 0;
+//	std::map<std::thread::id, xoshiro256pp_avx2> gens;
+//	auto h_a_ratio = h / a;
+//
+//	prob_sum = std::transform_reduce(std::execution::par, indices.begin(), indices.end(), double(), std::plus<double>(), [&](bool ph)->double {
+//		auto& gen = gens[std::this_thread::get_id()];
+//		auto inv_cos_2_theta = _mm256_pow_pd(_mm256_div_pd(_mm256_cvtepi64_pd_AVX2(gen()), _mm256_cvtepi64_pd_AVX2(gen.max())), _mm256_set1_pd(-2 / (gamma + 1)));
+//		auto _tan_ = _mm256_mul_pd(_mm256_set1_pd(h_a_ratio), _mm256_sqrt_pd(_mm256_sub_pd(inv_cos_2_theta, _mm256_set1_pd(1.))));
+//		auto phi_ = _mm256_mul_pd(_mm256_div_pd(_mm256_cvtepi64_pd_AVX2(gen()), _mm256_cvtepi64_pd_AVX2(gen.max())), _mm256_set1_pd(std::numbers::pi / 2));
+//		auto x_b = _mm256_sub_pd(_mm256_set1_pd(1), _mm256_mul_pd(_tan_, _mm256_cos_pd(phi_)));
+//		auto y_b = _mm256_sub_pd(_mm256_set1_pd(1), _mm256_mul_pd(_tan_, _mm256_sin_pd(phi_)));
+//		auto x_b_greater = _mm256_cmp_pd(x_b, _mm256_setzero_pd(), _CMP_GE_OQ);
+//		auto y_b_greater = _mm256_cmp_pd(y_b, _mm256_setzero_pd(), _CMP_GE_OQ);
+//		auto greater_mask = _mm256_and_pd(x_b_greater, y_b_greater);
+//		return _mm256_hreduce_pd(_mm256_and_pd(greater_mask, _mm256_mul_pd(x_b, y_b)));
+//		});
+//	return prob_sum / N;
+//}
+
 // Calculate ratio
-double ratio(double gamma, uint64_t N = 10e7) {
+double ratio(double gamma, uint64_t N = 1e8) {
 	return MC_count_pass(N, 1.0, 0.5, gamma) / MC_count_pass(N, 1.0, 2.0, gamma);
 }
 
@@ -823,7 +820,7 @@ void MC_prob3() {
 	double f_ratio = f1 / f2;
 	double gamma_init = 1.0; // Initial guess for gamma
 	double tol = 1e-5; // Tolerance for convergence
-	auto N = 10e6;
+	auto N = 1e8;
 	indices.resize(N);
 
 	auto result = boost::math::tools::bisect([&](double gamma) { return ratio(gamma, N) - f_ratio; },
@@ -851,7 +848,6 @@ void C_Test::run() {
 	//polynomial_speed_test();
 	//solution_test();
 	//intrin_test();
-	//additional_CPU_info();
 	//CVRR_test();
 	//zad3();
 	//solving_test();
