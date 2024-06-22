@@ -161,35 +161,6 @@ using error_stepper_type = boost::numeric::odeint::runge_kutta_cash_karp54<state
 template <size_t N>
 using controlled_stepper_type = boost::numeric::odeint::controlled_runge_kutta< error_stepper_type<N>>;
 
-class falling_ball_system {
-private:
-	double
-		C = 5.,
-		m = 10.,
-		g = 10.;
-public:
-	void operator()(const state_type<2>& x, state_type<2>& dxdt, const double /* t */) {
-		dxdt = {
-			-g - std::abs(x[0]) * x[0] * C / m,
-			x[0]
-		};
-	}
-};
-
-void zad3() {
-	tc.start();
-	auto height = [&](double t_k) {
-		state_type<2> x = { -500. * 1000 / 3600 , 10000. };
-		boost::numeric::odeint::integrate_adaptive(controlled_stepper_type<2>(), falling_ball_system(), x, 0., t_k, t_k / 20);
-		return x[1];
-	};
-	auto res = boost::math::tools::bisect(height, 0., 10000., [&](double min, double max) {return max - min < 1e-3; });
-	auto time_bisect = std::midpoint(res.first, res.second);
-	tc.stop();
-	std::cout << "Czas odeint/bisekcja: " << tc.measured_timespan().count() << '\n';
-	std::cout << "Flara uderzyla w ziemie po " << time_bisect << " s\n";
-}
-
 class var_coeffs_system {
 public:
 	void operator()(const state_type<3>& x, state_type<3>& dxdt, const double t) {
@@ -617,9 +588,10 @@ void sieve_test() {
 	std::cin >> i_start >> i_stop;
 	for (auto i = i_start; i < i_stop; i++) {
 		tc.start();
-		const auto&& res = PCL::sieve(std::pow(10, i));
+		const auto res = PCL::sieve(std::pow(10, i));
 		tc.stop();
-		std::cout << i << '\t' << tc.measured_timespan().count() << " s \n";
+		auto prime_count = std::count(res.begin(), res.end(), true);
+		std::cout << std::format("{}\t{} s\t{}\n", i, tc.measured_timespan().count(), prime_count);
 	}
 	std::cout << std::scientific;
 }
@@ -736,16 +708,6 @@ void basis_test() {
 	std::cout << "Basis vectors of the null space:\n" << nullspace << std::endl;
 }
 
-void solve_test() {
-	Eigen::Matrix3f m;
-	Eigen::Vector3f v;
-	m << 1, 0, 0, 0, 1, 1, 0, 1, 1;
-	v << 1, 1, 1;
-	std::cout << m << "\n\n" << v << "\n\n";
-	auto a = m.llt().solve(v);
-	std::cout << a << "\n\n";
-};
-
 // Define constants
 const double f1 = 87.98;
 const double sigma_f1 = 0.16;
@@ -849,8 +811,6 @@ void C_Test::run() {
 	//solution_test();
 	//intrin_test();
 	//CVRR_test();
-	//zad3();
-	//solving_test();
 	//filter_data();
 	//rich_test();
 	//mp_test();
@@ -858,7 +818,8 @@ void C_Test::run() {
 	//ts_test();
 	//basis_test();
 	//solve_test();
-	MC_prob3();
+	//MC_prob3();
+	sieve_test();
 }
 
 class Minesweeper_field {
